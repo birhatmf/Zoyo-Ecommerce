@@ -4,6 +4,7 @@ import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { telUrl, whatsappUrl } from "@/lib/format";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontText } from "@/lib/storefront-text";
 import { getFooterLinkGroups } from "@/services/content.service";
 
 const socials = [
@@ -13,9 +14,10 @@ const socials = [
 ] as const;
 
 export async function Footer() {
-  const [settings, groups] = await Promise.all([
+  const [settings, groups, contactHeading] = await Promise.all([
     getSiteSettings(),
     getFooterLinkGroups(),
+    getStorefrontText("footer.contactHeading"),
   ]);
 
   const siteName = settings.siteName || "Zoyo Mobilya";
@@ -85,7 +87,7 @@ export async function Footer() {
         )}
 
         <div>
-          <p className="text-sm font-medium tracking-wide">İletişim</p>
+          <p className="text-sm font-medium tracking-wide">{contactHeading}</p>
           <ul className="mt-3 space-y-3 text-sm text-primary-foreground/70">
             {settings.address && (
               <li className="flex items-start gap-2.5">

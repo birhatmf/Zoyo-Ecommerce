@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 
 import {
   deleteFooterGroupAction,
@@ -9,6 +8,7 @@ import {
   saveFooterGroupAction,
   saveFooterLinkAction,
 } from "@/app/admin/(panel)/content/actions";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -67,16 +67,11 @@ export default async function AdminFooterContentPage() {
                 <span className="text-sm font-medium">{group.title}</span>
                 <span className="text-xs text-muted-foreground">(sıra {group.sortOrder})</span>
               </div>
-              <form action={deleteFooterGroupAction}>
-                <input type="hidden" name="id" value={group.id} />
-                <button
-                  type="submit"
-                  aria-label={`${group.title} grubunu sil`}
-                  className="text-muted-foreground transition-colors hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </form>
+              <ConfirmDeleteButton
+                action={deleteFooterGroupAction}
+                hiddenFields={{ id: group.id }}
+                entityName={group.title}
+              />
             </div>
 
             <div className="mt-4 space-y-2">
@@ -103,16 +98,11 @@ export default async function AdminFooterContentPage() {
                       Güncelle
                     </button>
                   </form>
-                  <form action={deleteFooterLinkAction}>
-                    <input type="hidden" name="linkId" value={link.id} />
-                    <button
-                      type="submit"
-                      aria-label={`${link.label} linkini sil`}
-                      className="p-1.5 text-muted-foreground transition-colors hover:text-destructive"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </form>
+                  <ConfirmDeleteButton
+                    action={deleteFooterLinkAction}
+                    hiddenFields={{ linkId: link.id }}
+                    entityName={link.label}
+                  />
                 </div>
               ))}
             </div>

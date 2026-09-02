@@ -16,6 +16,8 @@ export type CmsPageFormDefaults = {
   type?: "LEGAL" | "CORPORATE" | "CUSTOM";
   content?: string;
   active?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 const inputClass =
@@ -98,6 +100,27 @@ export function CmsPageForm({ defaults = {} }: { defaults?: CmsPageFormDefaults 
             Temel HTML etiketleri kullanılabilir: p, strong, em, h2-h4, ul, ol, li, a.
             Güvenlik için diğer etiketler render sırasında temizlenir.
           </span>
+        </div>
+        <div className="sm:col-span-2">
+          <span className="mb-1.5 block text-sm text-muted-foreground">SEO Başlığı</span>
+          <input
+            name="seoTitle"
+            maxLength={70}
+            defaultValue={defaults.seoTitle}
+            placeholder="Boşsa sayfa başlığı kullanılır"
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <span className="mb-1.5 block text-sm text-muted-foreground">SEO Açıklaması</span>
+          <textarea
+            name="seoDescription"
+            rows={2}
+            maxLength={200}
+            defaultValue={defaults.seoDescription}
+            placeholder="Boşsa içerik özeti kullanılır"
+            className={`${inputClass} resize-y`}
+          />
         </div>
       </div>
 

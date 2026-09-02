@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { saveImage } from "@/lib/storage";
 import { mediaRefSchema, safeUrlSchema } from "@/lib/validation/media-url";
@@ -15,7 +16,8 @@ import { mediaRefSchema, safeUrlSchema } from "@/lib/validation/media-url";
 const HOMEPAGE_IMAGE_FIELDS = ["heroImageDesktop", "heroImageMobile", "storyImage"] as const;
 
 export async function saveHomepageImageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
 
   const field = z.string().safeParse(formData.get("field"));
   if (
@@ -107,7 +109,8 @@ export async function saveHomepageAction(
   _previousState: CmsActionState,
   formData: FormData,
 ): Promise<CmsActionState> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = homepageSchema.safeParse({
     heroTitle: formData.get("heroTitle") ?? "",
@@ -160,7 +163,8 @@ const heroSlideSchema = z.object({
 });
 
 export async function saveHeroSlideAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
 
   // Görsel adresi boşsa doğrudan yüklenen dosyayı kullan
   let imageUrl = String(formData.get("imageUrl") ?? "").trim();
@@ -198,7 +202,8 @@ export async function saveHeroSlideAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteHeroSlideAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const id = z.uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
@@ -210,7 +215,8 @@ export async function deleteHeroSlideAction(formData: FormData): Promise<void> {
 export async function toggleHeroSlideActiveAction(
   formData: FormData,
 ): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const id = z.uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
@@ -243,7 +249,8 @@ const headerLinkSchema = z.object({
 });
 
 export async function saveHeaderLinkAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
 
   const parsed = headerLinkSchema.safeParse({
     id: formData.get("id") ?? "",
@@ -265,7 +272,8 @@ export async function saveHeaderLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteHeaderLinkAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const id = z.uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
@@ -277,7 +285,8 @@ export async function deleteHeaderLinkAction(formData: FormData): Promise<void> 
 // ---------- Footer ----------
 
 export async function saveFooterCopyrightAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const copyright = z
     .string()
     .trim()
@@ -303,7 +312,8 @@ const groupSchema = z.object({
 });
 
 export async function saveFooterGroupAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
 
   const parsed = groupSchema.safeParse({
     id: formData.get("id") ?? "",
@@ -323,7 +333,8 @@ export async function saveFooterGroupAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteFooterGroupAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const id = z.uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
@@ -345,7 +356,8 @@ const linkSchema = z.object({
 });
 
 export async function saveFooterLinkAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
 
   const linkIdRaw = formData.get("linkId");
   const parsed = linkSchema.safeParse({
@@ -373,7 +385,8 @@ export async function saveFooterLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteFooterLinkAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
   const id = z.uuid().safeParse(formData.get("linkId"));
   if (!id.success) return;
 
@@ -393,13 +406,16 @@ const cmsPageSchema = z.object({
   type: z.enum(["LEGAL", "CORPORATE", "CUSTOM"]),
   content: z.string().max(100_000).optional().or(z.literal("")),
   active: z.boolean(),
+  seoTitle: z.string().trim().max(70).optional().or(z.literal("")),
+  seoDescription: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 export async function saveCmsPageAction(
   _previousState: CmsActionState,
   formData: FormData,
 ): Promise<CmsActionState> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = cmsPageSchema.safeParse({
     title: formData.get("title"),
@@ -407,6 +423,8 @@ export async function saveCmsPageAction(
     type: formData.get("type") || "CUSTOM",
     content: formData.get("content") ?? "",
     active: formData.get("active") === "on",
+    seoTitle: formData.get("seoTitle") ?? "",
+    seoDescription: formData.get("seoDescription") ?? "",
   });
   if (!parsed.success) {
     return { error: "Lütfen form alanlarını kontrol edin.", fieldErrors: fieldErrorsFrom(parsed.error) };
@@ -419,17 +437,27 @@ export async function saveCmsPageAction(
     type: parsed.data.type,
     content: parsed.data.content || "",
     active: parsed.data.active,
+    seoTitle: parsed.data.seoTitle || null,
+    seoDescription: parsed.data.seoDescription || null,
   };
 
+  const isNew = !(typeof id === "string" && id);
   try {
     let pageId: string;
-    if (typeof id === "string" && id) {
-      await prisma.cmsPage.update({ where: { id }, data });
-      pageId = id;
+    if (!isNew) {
+      pageId = id as string;
+      await prisma.cmsPage.update({ where: { id: pageId }, data });
     } else {
       const created = await prisma.cmsPage.create({ data });
       pageId = created.id;
     }
+    await recordAudit({
+      actor: admin,
+      action: isNew ? "CREATE" : "UPDATE",
+      entityType: "CmsPage",
+      entityId: pageId,
+      summary: isNew ? `${parsed.data.title} sayfası oluşturuldu` : `${parsed.data.title} sayfası güncellendi`,
+    });
     revalidatePath("/");
     redirect(`/admin/content/pages/${pageId}`);
   } catch (error) {
@@ -447,11 +475,25 @@ export async function saveCmsPageAction(
 }
 
 export async function deleteCmsPageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
   const id = z.uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
+  const existing = await prisma.cmsPage.findUnique({
+    where: { id: id.data },
+    select: { title: true },
+  });
+  if (!existing) return;
+
   await prisma.cmsPage.delete({ where: { id: id.data } });
+  await recordAudit({
+    actor: admin,
+    action: "DELETE",
+    entityType: "CmsPage",
+    entityId: id.data,
+    summary: `${existing.title} sayfası silindi`,
+  });
   revalidatePath("/admin/content/pages");
   redirect("/admin/content/pages");
 }

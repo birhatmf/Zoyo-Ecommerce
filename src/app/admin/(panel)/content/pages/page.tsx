@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 
 import { deleteCmsPageAction } from "@/app/admin/(panel)/content/actions";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Sayfalar" };
@@ -65,16 +65,11 @@ export default async function AdminCmsPagesPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <form action={deleteCmsPageAction}>
-                    <input type="hidden" name="id" value={page.id} />
-                    <button
-                      type="submit"
-                      aria-label={`${page.title} sayfasını sil`}
-                      className="p-1.5 text-muted-foreground transition-colors hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </form>
+                  <ConfirmDeleteButton
+                    action={deleteCmsPageAction}
+                    hiddenFields={{ id: page.id }}
+                    entityName={page.title}
+                  />
                 </td>
               </tr>
             ))}

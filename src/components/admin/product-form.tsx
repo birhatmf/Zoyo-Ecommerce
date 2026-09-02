@@ -24,6 +24,8 @@ export type ProductFormDefaults = {
   deliveryInformation?: string;
   status?: "DRAFT" | "ACTIVE" | "INACTIVE";
   featured?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 const inputClass =
@@ -147,6 +149,29 @@ export function ProductForm({
           />
           Ana sayfada öne çıkar
         </label>
+
+        <Field
+          label="SEO Başlığı"
+          error={fieldError("seoTitle")}
+          hint="Boş bırakılırsa ürün adı kullanılır (max 70 karakter)"
+          className="sm:col-span-2"
+        >
+          <input name="seoTitle" maxLength={70} defaultValue={defaults.seoTitle} className={inputClass} />
+        </Field>
+        <Field
+          label="SEO Açıklaması"
+          error={fieldError("seoDescription")}
+          hint="Boş bırakılırsa kısa açıklama kullanılır (max 200 karakter)"
+          className="sm:col-span-2"
+        >
+          <textarea
+            name="seoDescription"
+            rows={2}
+            maxLength={200}
+            defaultValue={defaults.seoDescription}
+            className={`${inputClass} resize-y`}
+          />
+        </Field>
         <Field
           label="Görseller"
           hint={

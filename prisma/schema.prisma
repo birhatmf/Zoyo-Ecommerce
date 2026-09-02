@@ -79,8 +79,13 @@ model Category {
   image       String?
   active      Boolean  @default(true)
   sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  // SEO: boşsa name/description'a otomatik fallback yapılır.
+  seoTitle       String?
+  seoDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   products Product[]
 
@@ -103,8 +108,13 @@ model Product {
   deliveryInformation String?
   status              ProductStatus @default(DRAFT)
   featured            Boolean       @default(false)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+
+  // SEO: boşsa name/shortDescription'a otomatik fallback yapılır.
+  seoTitle       String?
+  seoDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   category Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   images   ProductImage[]
@@ -242,8 +252,13 @@ model CmsPage {
   content   String
   type      CmsPageType @default(CUSTOM)
   active    Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+
+  // SEO: boşsa title/content'e otomatik fallback yapılır.
+  seoTitle       String?
+  seoDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("cms_pages")
 }
@@ -334,4 +349,55 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+// ---------- Storefront Text ----------
+
+// Storefront'ta görünen UI metinlerini CMS'den yönetmek için.
+// Renk/font gibi tasarım tokenları DEĞİL, yalnızca işletmenin kontrol
+// etmesi gereken metinler (footer/navbar/checkout/boş durumlar/CTA vb.)
+model StorefrontText {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("storefront_texts")
+}
+
+// ---------- Media ----------
+
+// Merkezi medya kaydı: yerel disk / R2 / S3 fark etmeksizin URL + metadata.
+// Görsellerin hangi varlıklarca kullanıldığını izlemek için referans bilgisi
+// JSON olarak tutulur. Fiziksel silme güvenliğini sağlamak için kullanılır.
+model MediaAsset {
+  id        String   @id @default(uuid()) @db.Uuid
+  url       String   @unique
+  fileName  String   @unique
+  mimeType  String
+  sizeBytes Int
+  // Kullanım referansları: ["ProductImage:<id>", "Category:<id>", ...]
+  refs      Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("media_assets")
+}
+
+// ---------- Audit ----------
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

@@ -24,7 +24,7 @@ export default async function AdminPanelLayout({
           Panel
         </Link>
         <div className="mt-8 flex flex-1 flex-col">
-          <AdminNav />
+          <AdminNav role={admin.role} />
           <div className="mt-auto border-t border-border pt-4">
             <p className="px-3 text-xs text-muted-foreground">{admin.email}</p>
             <div className="mt-2 px-3">
@@ -42,7 +42,7 @@ export default async function AdminPanelLayout({
         </header>
         <div className="border-b border-border bg-card lg:hidden">
           <div className="overflow-x-auto px-4 py-2">
-            <AdminNavMobileWrapper />
+            <AdminNavMobileWrapper role={admin.role} />
           </div>
         </div>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
@@ -51,11 +51,11 @@ export default async function AdminPanelLayout({
   );
 }
 
-function AdminNavMobileWrapper() {
+function AdminNavMobileWrapper({ role }: { role: "ADMIN" | "EDITOR" }) {
   // Mobilde yatay kaydırılabilir menü
   return (
     <div className="flex min-w-max gap-1 [&_nav]:flex [&_nav]:flex-row [&_nav]:gap-1">
-      <AdminNav />
+      <AdminNav role={role} />
     </div>
   );
 }

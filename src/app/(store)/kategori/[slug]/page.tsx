@@ -19,8 +19,12 @@ export async function generateMetadata({
   const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Kategori" };
   return {
-    title: category.name,
-    description: category.description ?? undefined,
+    title: category.seoTitle || category.name,
+    description: category.seoDescription || category.description || undefined,
+    openGraph: {
+      title: category.seoTitle || category.name,
+      description: category.seoDescription || category.description || undefined,
+    },
   };
 }
 

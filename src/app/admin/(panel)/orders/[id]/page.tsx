@@ -11,10 +11,10 @@ import {
 import {
   formatDate,
   getOrderNoteTemplates,
-  ORDER_STATUSES,
   ORDER_STATUS_BADGE_CLASSES,
   ORDER_STATUS_LABELS,
 } from "@/lib/order";
+import { allowedNextStatuses } from "@/lib/order-transitions";
 import { formatPrice, whatsappUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { OrderNotes } from "@/components/admin/order-notes";
@@ -395,7 +395,10 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                 defaultValue={order.status}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
               >
-                {ORDER_STATUSES.map((s) => (
+                <option value={order.status} disabled>
+                  {ORDER_STATUS_LABELS[order.status]} (mevcut)
+                </option>
+                {allowedNextStatuses(order.status).map((s) => (
                   <option key={s} value={s}>
                     {ORDER_STATUS_LABELS[s]}
                   </option>

@@ -19,12 +19,18 @@ export async function generateMetadata(): Promise<Metadata> {
   let description =
     "El işçiliği, doğal malzemeler ve zamansız tasarımlarla butik ahşap mobilya üretimi.";
   let faviconUrl: string | undefined;
+  let ogImageUrl: string | undefined;
+  let titleTemplate = `%s | ${siteName}`;
 
   try {
     const settings = await getSiteSettings();
     if (settings.siteName) siteName = settings.siteName;
-    if (settings.siteDescription) description = settings.siteDescription;
+    if (settings.seoDescription || settings.siteDescription) {
+      description = settings.seoDescription || settings.siteDescription;
+    }
     if (settings.faviconUrl) faviconUrl = settings.faviconUrl;
+    if (settings.seoOgImage) ogImageUrl = settings.seoOgImage;
+    if (settings.seoTitleTemplate) titleTemplate = settings.seoTitleTemplate;
   } catch {
     // DB erişilemezse varsayılan metadata kullanılır
   }
@@ -32,9 +38,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: {
       default: siteName,
-      template: `%s | ${siteName}`,
+      template: titleTemplate,
     },
     description,
+    openGraph: {
+      title: siteName,
+      description,
+      ...(ogImageUrl ? { images: [{ url: ogImageUrl }] } : {}),
+    },
     ...(faviconUrl ? { icons: { icon: faviconUrl } } : {}),
   };
 }

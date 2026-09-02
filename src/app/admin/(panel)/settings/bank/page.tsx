@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 
 import { deleteBankAccountAction } from "@/app/admin/(panel)/settings/actions";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Banka Hesapları" };
@@ -67,16 +67,11 @@ export default async function AdminBankAccountsPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <form action={deleteBankAccountAction}>
-                    <input type="hidden" name="id" value={account.id} />
-                    <button
-                      type="submit"
-                      aria-label={`${account.bankName} hesabını sil`}
-                      className="p-1.5 text-muted-foreground transition-colors hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </form>
+                  <ConfirmDeleteButton
+                    action={deleteBankAccountAction}
+                    hiddenFields={{ id: account.id }}
+                    entityName={account.bankName}
+                  />
                 </td>
               </tr>
             ))}

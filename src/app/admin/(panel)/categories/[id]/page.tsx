@@ -36,6 +36,8 @@ export default async function EditCategoryPage({ params }: EditCategoryPageProps
             image: category.image ?? "",
             active: category.active,
             sortOrder: category.sortOrder,
+            seoTitle: category.seoTitle ?? "",
+            seoDescription: category.seoDescription ?? "",
           }}
         />
       </div>

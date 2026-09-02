@@ -7,16 +7,17 @@ type MobileNavProps = {
   links: { label: string; href: string }[];
   categories: { name: string; slug: string }[];
   light?: boolean;
+  texts?: { categories: string; openMenu: string };
 };
 
-export function MobileNav({ siteName, links, categories, light }: MobileNavProps) {
+export function MobileNav({ siteName, links, categories, light, texts }: MobileNavProps) {
   return (
     <Sheet>
       <SheetTrigger
         className={`inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-muted md:hidden ${
           light ? "text-background" : "text-foreground"
         }`}
-        aria-label="Menüyü aç"
+        aria-label={texts?.openMenu ?? "Menüyü aç"}
       >
         <Menu className="size-5" />
       </SheetTrigger>
@@ -37,7 +38,7 @@ export function MobileNav({ siteName, links, categories, light }: MobileNavProps
         </nav>
         <div className="px-6 pb-8">
           <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Kategoriler
+            {texts?.categories ?? "Kategoriler"}
           </p>
           <nav className="mt-2 flex flex-col">
             {categories.map((category) => (

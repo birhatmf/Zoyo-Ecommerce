@@ -43,6 +43,8 @@ export default async function EditCmsPage({ params }: EditCmsPageProps) {
             type: page.type,
             content: page.content,
             active: page.active,
+            seoTitle: page.seoTitle ?? "",
+            seoDescription: page.seoDescription ?? "",
           }}
         />
       </div>

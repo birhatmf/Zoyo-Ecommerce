@@ -7,6 +7,7 @@ import { SmartImage } from "@/components/storefront/smart-image";
 import { whatsappUrl } from "@/lib/format";
 import { toProductCardData } from "@/lib/product";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontTexts } from "@/lib/storefront-text";
 import {
   getActiveCategories,
   getFeaturedProducts,
@@ -17,12 +18,13 @@ import {
 } from "@/services/content.service";
 
 export default async function HomePage() {
-  const [content, categories, featured, settings, slides] = await Promise.all([
+  const [content, categories, featured, settings, slides, texts] = await Promise.all([
     getHomepageContent(),
     getActiveCategories(),
     getFeaturedProducts(),
     getSiteSettings(),
     getActiveHeroSlides(),
+    getStorefrontTexts(),
   ]);
 
   const waLink = settings.whatsapp
@@ -110,7 +112,7 @@ export default async function HomePage() {
       {/* Kategoriler */}
       {categories.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-          <SectionHeading title="Kategoriler" href="/urunler" linkLabel="Tümünü Gör" />
+          <SectionHeading title={texts["homepage.categoriesHeading"]} href="/urunler" linkLabel={texts["homepage.viewAll"]} />
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((category) => (
               <Link key={category.id} href={`/kategori/${category.slug}`} className="group block">
@@ -133,7 +135,7 @@ export default async function HomePage() {
       {featured.length > 0 && (
         <section className="border-y border-border bg-secondary/50">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <SectionHeading title="Öne Çıkan Ürünler" href="/urunler" linkLabel="Tüm Ürünler" />
+            <SectionHeading title={texts["homepage.featuredHeading"]} href="/urunler" linkLabel={texts["homepage.allProducts"]} />
             <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
               {featured.map((product) => (
                 <ProductCard
@@ -161,7 +163,7 @@ export default async function HomePage() {
             )}
             <div className={content.storyImage ? "" : "lg:col-span-2"}>
               <p className="text-xs font-medium tracking-[0.2em] text-accent uppercase">
-                Hikâyemiz
+                {texts["homepage.storyHeading"]}
               </p>
               <h2 className="mt-4 font-heading text-3xl font-medium sm:text-4xl">
                 {content.storyTitle}

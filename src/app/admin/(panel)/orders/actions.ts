@@ -5,7 +5,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+import { canTransition } from "@/lib/order-transitions";
 import { prisma } from "@/lib/prisma";
 import {
   orderStatusUpdateSchema,
@@ -41,7 +43,8 @@ const contactUpdateSchema = z.object({
 });
 
 export async function updateOrderContactAction(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
 
   const parsed = contactUpdateSchema.safeParse({
     orderId: formData.get("orderId"),
@@ -83,7 +86,8 @@ const noteIdSchema = z.object({
 });
 
 export async function updateOrderAction(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
 
   const parsed = updateOrderSchema.safeParse({
     orderId: formData.get("orderId"),
@@ -93,6 +97,17 @@ export async function updateOrderAction(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   const { orderId, status, adminNote } = parsed.data;
+
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { orderNumber: true, status: true },
+  });
+  if (!existing) return;
+
+  // Geçersiz durum geçişini reddet (PRD §25 + order-transitions.ts).
+  if (!canTransition(existing.status, status)) {
+    return;
+  }
 
   await prisma.order.update({
     where: { id: orderId },
@@ -104,12 +119,25 @@ export async function updateOrderAction(formData: FormData): Promise<void> {
     },
   });
 
+  await recordAudit({
+    actor: admin,
+    action: existing.status !== status ? "STATUS_CHANGE" : "UPDATE",
+    entityType: "Order",
+    entityId: orderId,
+    summary:
+      existing.status !== status
+        ? `${existing.orderNumber} durumu ${existing.status} → ${status}`
+        : `${existing.orderNumber} güncellendi`,
+    metadata: { from: existing.status, to: status },
+  });
+
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
 }
 
 export async function addOrderNoteAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const actor = await requireRole("EDITOR");
+  if (!actor) return;
 
   const parsed = createNoteSchema.safeParse({
     orderId: formData.get("orderId"),
@@ -135,7 +163,8 @@ export async function addOrderNoteAction(formData: FormData): Promise<void> {
 }
 
 export async function toggleOrderNoteAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const actor = await requireRole("EDITOR");
+  if (!actor) return;
 
   const parsed = noteIdSchema.safeParse({ noteId: formData.get("noteId") });
   if (!parsed.success) return;
@@ -155,7 +184,8 @@ export async function toggleOrderNoteAction(formData: FormData): Promise<void> {
 }
 
 export async function updateOrderNoteAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const actor = await requireRole("EDITOR");
+  if (!actor) return;
 
   const parsed = z
     .object({
@@ -183,7 +213,8 @@ export async function updateOrderNoteAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteOrderNoteAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const actor = await requireRole("EDITOR");
+  if (!actor) return;
 
   const parsed = noteIdSchema.safeParse({ noteId: formData.get("noteId") });
   if (!parsed.success) return;

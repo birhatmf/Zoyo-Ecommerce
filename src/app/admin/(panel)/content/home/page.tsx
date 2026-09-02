@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 import { saveHomepageImageAction } from "@/app/admin/(panel)/content/actions";
@@ -25,7 +26,17 @@ export default async function AdminHomeContentPage() {
       >
         ← İçerik
       </Link>
-      <h1 className="mt-1 font-heading text-xl font-medium">Ana Sayfa İçeriği</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="mt-1 font-heading text-xl font-medium">Ana Sayfa İçeriği</h1>
+        <Link
+          href="/"
+          target="_blank"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          <ExternalLink className="size-3.5" />
+          Sitede görüntüle
+        </Link>
+      </div>
       <div className="mt-6">
         <HomepageForm
           uploadImageAction={saveHomepageImageAction}

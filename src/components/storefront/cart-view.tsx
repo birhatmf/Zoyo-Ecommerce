@@ -7,13 +7,18 @@ import { AlertTriangle, Minus, Plus, Trash2 } from "lucide-react";
 
 import { removeFromCart, setQuantity, useCartStorageWarning } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import type { StorefrontTextKey } from "@/lib/storefront-text";
 import {
   effectivePrice,
   useCartProducts,
   type CartProduct,
 } from "@/lib/use-cart-products";
 
-export function CartView() {
+export function CartView({
+  texts,
+}: {
+  texts?: Record<StorefrontTextKey, string>;
+}) {
   const { cart, products, isLoading } = useCartProducts();
   const storageWarning = useCartStorageWarning();
 
@@ -32,15 +37,15 @@ export function CartView() {
   if (cart.length === 0) {
     return (
       <div className="py-16 text-center">
-        <h1 className="font-heading text-2xl font-medium">Sepetiniz boş</h1>
+        <h1 className="font-heading text-2xl font-medium">{texts?.["cart.emptyTitle"] ?? "Sepetiniz boş"}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Koleksiyonumuzdan beğendiğiniz parçaları sepete ekleyebilirsiniz.
+          {texts?.["cart.emptyDescription"] ?? "Koleksiyonumuzdan beğendiğiniz parçaları sepete ekleyebilirsiniz."}
         </p>
         <Link
           href="/urunler"
           className="mt-6 inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
         >
-          Ürünleri Keşfet
+          {texts?.["cart.explore"] ?? "Ürünleri Keşfet"}
         </Link>
       </div>
     );
@@ -161,18 +166,18 @@ export function CartView() {
       </div>
 
       <aside className="lg:border-l lg:border-border lg:pl-10">
-        <h2 className="font-heading text-lg font-medium">Sipariş Özeti</h2>
+        <h2 className="font-heading text-lg font-medium">{texts?.["checkout.summary"] ?? "Sipariş Özeti"}</h2>
         <dl className="mt-5 space-y-3 text-sm">
           <div className="flex items-center justify-between">
-            <dt className="text-muted-foreground">Ara Toplam</dt>
+            <dt className="text-muted-foreground">{texts?.["cart.subtotal"] ?? "Ara Toplam"}</dt>
             <dd>{formatPrice(total)}</dd>
           </div>
           <div className="flex items-center justify-between">
-            <dt className="text-muted-foreground">Teslimat</dt>
-            <dd>Üretim sonrası belirtilir</dd>
+            <dt className="text-muted-foreground">{texts?.["cart.delivery"] ?? "Teslimat"}</dt>
+            <dd>{texts?.["cart.deliveryNote"] ?? "Üretim sonrası belirtilir"}</dd>
           </div>
           <div className="flex items-center justify-between border-t border-border pt-3 text-base font-medium">
-            <dt>Toplam</dt>
+            <dt>{texts?.["cart.total"] ?? "Toplam"}</dt>
             <dd className="font-heading text-xl">{formatPrice(total)}</dd>
           </div>
         </dl>
@@ -185,11 +190,10 @@ export function CartView() {
               : "bg-primary text-primary-foreground hover:bg-primary/85"
           }`}
         >
-          Siparşi Tamamla
+          {texts?.["cart.checkout"] ?? "Siparişi Tamamla"}
         </Link>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          Online ödeme alınmamaktadır. Sipariş talebiniz firma tarafından onaylandıktan
-          sonra sizinle iletişime geçilir.
+          {texts?.["cart.noOnlinePayment"] ?? "Online ödeme alınmamaktadır. Sipariş talebiniz firma tarafından onaylandıktan sonra sizinle iletişime geçilir."}
         </p>
       </aside>
     </div>

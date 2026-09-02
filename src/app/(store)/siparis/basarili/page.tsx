@@ -7,6 +7,7 @@ import { CopyIbanButton } from "@/components/storefront/copy-iban-button";
 import { formatPrice, telUrl, whatsappUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontTexts } from "@/lib/storefront-text";
 
 export const metadata: Metadata = {
   title: "Sipariş Talebiniz Alındı",
@@ -21,7 +22,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
   const { order: orderNumber } = await searchParams;
   if (!orderNumber) notFound();
 
-  const [order, bankAccounts, settings] = await Promise.all([
+  const [order, bankAccounts, settings, texts] = await Promise.all([
     prisma.order.findFirst({
       where: { orderNumber },
       select: { orderNumber: true, total: true, status: true },
@@ -31,6 +32,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
       orderBy: { sortOrder: "asc" },
     }),
     getSiteSettings(),
+    getStorefrontTexts(),
   ]);
 
   if (!order) notFound();
@@ -46,33 +48,31 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 md:py-20">
       <div className="text-center">
         <p className="text-xs font-medium tracking-[0.2em] text-accent uppercase">
-          Sipariş Talebiniz Alındı
+          {texts["orderSuccess.eyebrow"]}
         </p>
         <h1 className="mt-4 font-heading text-3xl font-medium sm:text-4xl">
-          Teşekkürler!
+          {texts["orderSuccess.title"]}
         </h1>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Sipariş talebiniz alınmıştır. Siparişiniz firmamız tarafından kontrol edildikten
-          sonra sizinle iletişime geçilecektir.
+          {texts["orderSuccess.message"]}
         </p>
 
         <div className="mx-auto mt-8 inline-flex flex-col items-center gap-1 rounded-md border border-border bg-secondary/60 px-8 py-5">
-          <span className="text-xs text-muted-foreground">Sipariş Numaranız</span>
+          <span className="text-xs text-muted-foreground">{texts["orderSuccess.orderNumber"]}</span>
           <span className="font-heading text-2xl font-medium tracking-wide">
             {order.orderNumber}
           </span>
           <span className="mt-1 text-sm text-muted-foreground">
-            Toplam: <strong className="text-foreground">{formatPrice(order.total)}</strong>
+            {texts["orderSuccess.total"]}: <strong className="text-foreground">{formatPrice(order.total)}</strong>
           </span>
         </div>
       </div>
 
       {bankAccounts.length > 0 && (
         <section className="mt-12 border-t border-border pt-10">
-          <h2 className="font-heading text-lg font-medium">Banka Bilgileri</h2>
+          <h2 className="font-heading text-lg font-medium">{texts["orderSuccess.bankHeading"]}</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Online ödeme alınmamaktadır. Ödeme yapmak isterseniz aşağıdaki hesaplara
-            transfer gerçekleştirebilirsiniz.
+            {texts["orderSuccess.noOnlinePayment"]}
           </p>
           <ul className="mt-6 space-y-4">
             {bankAccounts.map((account) => (
@@ -95,9 +95,9 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
       )}
 
       <section className="mt-12 border-t border-border pt-10">
-        <h2 className="font-heading text-lg font-medium">İletişime Geçin</h2>
+        <h2 className="font-heading text-lg font-medium">{texts["orderSuccess.contactHeading"]}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Siparişiniz hakkında soru sormak veya bilgi almak için bize ulaşabilirsiniz.
+          {texts["orderSuccess.contactHint"]}
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           {waLink && (
@@ -108,7 +108,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
               className="inline-flex h-11 items-center gap-2 rounded-md bg-accent px-6 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
             >
               <MessageCircle className="size-4" />
-              WhatsApp ile Gönder
+              {texts["orderSuccess.whatsapp"]}
             </a>
           )}
           {settings.phone && (
@@ -117,7 +117,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
               className="inline-flex h-11 items-center gap-2 rounded-md border border-border px-6 text-sm font-medium transition-colors hover:bg-muted"
             >
               <Phone className="size-4" />
-              Telefonla Ara
+              {texts["orderSuccess.call"]}
             </a>
           )}
         </div>
@@ -128,7 +128,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
           href="/urunler"
           className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
         >
-          Alışverişe devam et
+          {texts["orderSuccess.continue"]}
         </Link>
       </p>
     </div>

@@ -5,10 +5,12 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { ORDER_NOTE_TEMPLATES_KEY } from "@/lib/order";
 import { prisma } from "@/lib/prisma";
 import { saveImage } from "@/lib/storage";
+import { STOREFRONT_TEXT_DEFS, type StorefrontTextKey } from "@/lib/storefront-text";
 
 export type SettingsActionState = {
   error?: string;
@@ -34,13 +36,18 @@ const SETTING_KEYS = [
   "youtube",
   "workingHours",
   "orderPrefix",
+  "seoTitle",
+  "seoTitleTemplate",
+  "seoDescription",
+  "seoOgImage",
 ] as const;
 
 export async function saveSettingsAction(
   _previousState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const updates: { key: string; value: string }[] = [];
   for (const key of SETTING_KEYS) {
@@ -69,7 +76,8 @@ export async function saveSettingsAction(
 // ---------- Görsel yükleme (anında kaydeder) ----------
 
 export async function uploadSettingImageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
 
   const key = z.string().safeParse(formData.get("key"));
   const file = formData.get("file");
@@ -123,7 +131,8 @@ export async function saveBankAccountAction(
   _previousState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = bankSchema.safeParse({
     bankName: formData.get("bankName"),
@@ -164,7 +173,8 @@ export async function saveBankAccountAction(
 }
 
 export async function deleteBankAccountAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
   const id = z.string().uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
@@ -214,7 +224,8 @@ export async function saveOrderNoteTemplateAction(
   _previousState: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = templateSchema.safeParse({
     templateId: formData.get("templateId") ?? "",
@@ -254,11 +265,56 @@ export async function saveOrderNoteTemplateAction(
 }
 
 export async function deleteOrderNoteTemplateAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
 
   const templateId = z.string().uuid().safeParse(formData.get("templateId"));
   if (!templateId.success) return;
 
   const templates = await readTemplates();
   await writeTemplates(templates.filter((t) => t.id !== templateId.data));
+}
+
+// ---------- Storefront metinleri ----------
+
+const storefrontTextSchema = z.object({
+  key: z.string(),
+  value: z.string().max(5000),
+});
+
+export async function saveStorefrontTextAction(
+  _previousState: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const admin = await requireRole("ADMIN");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
+
+  const parsed = storefrontTextSchema.safeParse({
+    key: formData.get("key"),
+    value: formData.get("value") ?? "",
+  });
+  if (!parsed.success) {
+    return { error: "Geçersiz metin. Maksimum 5000 karakter." };
+  }
+
+  // Yalnızca bilinen anahtarlara izin ver (key-value mass-assignment koruması).
+  const def = STOREFRONT_TEXT_DEFS.find((d) => d.key === parsed.data.key);
+  if (!def) return { error: "Bilinmeyen metin anahtarı." };
+
+  await prisma.storefrontText.upsert({
+    where: { key: parsed.data.key as StorefrontTextKey },
+    update: { value: parsed.data.value },
+    create: { key: parsed.data.key as StorefrontTextKey, value: parsed.data.value },
+  });
+
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "StorefrontText",
+    entityId: parsed.data.key,
+    summary: `Storefront metni güncellendi: ${def.label}`,
+  });
+
+  revalidatePath("/");
+  return { saved: true };
 }

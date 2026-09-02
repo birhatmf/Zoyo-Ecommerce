@@ -7,6 +7,7 @@ import { AlertCircle } from "lucide-react";
 
 import { clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import type { StorefrontTextKey } from "@/lib/storefront-text";
 import {
   effectivePrice,
   useCartProducts,
@@ -62,8 +63,10 @@ const legalLinks = [
 
 export function CheckoutForm({
   orderNotes = [],
+  texts,
 }: {
   orderNotes?: string[];
+  texts?: Record<StorefrontTextKey, string>;
 }) {
   const { cart, products, isLoading } = useCartProducts();
   const [form, setForm] = useState<FormState>(initialState);
@@ -167,7 +170,7 @@ export function CheckoutForm({
     <form onSubmit={handleSubmit} className="grid gap-12 lg:grid-cols-[1fr_340px]">
       <div className="space-y-10">
         <fieldset>
-          <legend className="font-heading text-lg font-medium">İletişim Bilgileri</legend>
+          <legend className="font-heading text-lg font-medium">{texts?.["checkout.contactHeading"] ?? "İletişim Bilgileri"}</legend>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field label="Ad *" error={fieldErrors.customerFirstName}>
               <input
@@ -212,7 +215,7 @@ export function CheckoutForm({
         </fieldset>
 
         <fieldset>
-          <legend className="font-heading text-lg font-medium">Teslimat Adresi</legend>
+          <legend className="font-heading text-lg font-medium">{texts?.["checkout.deliveryHeading"] ?? "Teslimat Adresi"}</legend>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field label="İl *" error={fieldErrors.city}>
               <input
@@ -273,7 +276,7 @@ export function CheckoutForm({
         </fieldset>
 
         <fieldset>
-          <legend className="font-heading text-lg font-medium">Fatura Bilgileri</legend>
+          <legend className="font-heading text-lg font-medium">{texts?.["checkout.invoiceHeading"] ?? "Fatura Bilgileri"}</legend>
 
           <div className="mt-4 inline-flex rounded-md border border-border p-1" role="group" aria-label="Fatura türü">
             {(
@@ -361,7 +364,7 @@ export function CheckoutForm({
         </fieldset>
 
         <fieldset>
-          <legend className="font-heading text-lg font-medium">Yasal Onaylar</legend>
+          <legend className="font-heading text-lg font-medium">{texts?.["checkout.legalHeading"] ?? "Yasal Onaylar"}</legend>
           <div className="mt-4 space-y-3">
             {legalLinks.map((legal) => (
               <label key={legal.name} className="flex cursor-pointer items-start gap-3 text-sm">
@@ -379,8 +382,8 @@ export function CheckoutForm({
                     className="underline underline-offset-4 hover:text-foreground"
                   >
                     {legal.label}
-                  </Link>{" "}
-                  okudum ve kabul ediyorum.
+                    </Link>{" "}
+                    {texts?.["checkout.acceptSuffix"] ?? "okudum ve kabul ediyorum."}
                 </span>
               </label>
             ))}
@@ -389,9 +392,9 @@ export function CheckoutForm({
 
         {orderNotes.length > 0 && (
           <fieldset>
-            <legend className="font-heading text-lg font-medium">Sipariş Maddeleri</legend>
+            <legend className="font-heading text-lg font-medium">{texts?.["checkout.notesHeading"] ?? "Sipariş Maddeleri"}</legend>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sipariş sürecinize dair bilmeniz gereken maddeler:
+              {texts?.["checkout.notesHint"] ?? "Sipariş sürecinize dair bilmeniz gereken maddeler:"}
             </p>
             <ul className="mt-3 space-y-2 rounded-md border border-border bg-card p-4">
               {orderNotes.map((note) => (
@@ -414,7 +417,7 @@ export function CheckoutForm({
 
       <aside>
         <div className="lg:sticky lg:top-24">
-          <h2 className="font-heading text-lg font-medium">Sipariş Özeti</h2>
+          <h2 className="font-heading text-lg font-medium">{texts?.["checkout.summary"] ?? "Sipariş Özeti"}</h2>
           <ul className="mt-4 divide-y divide-border border-y border-border">
             {activeItems.map((item) => {
               const product = productMap.get(item.productId)!;
@@ -432,7 +435,7 @@ export function CheckoutForm({
             })}
           </ul>
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-sm font-medium">Toplam</span>
+            <span className="text-sm font-medium">{texts?.["cart.total"] ?? "Toplam"}</span>
             <span className="font-heading text-xl">{formatPrice(total)}</span>
           </div>
           <button
@@ -440,11 +443,10 @@ export function CheckoutForm({
             disabled={isPending || isLoading || total === 0}
             className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
           >
-            {isPending ? "Gönderiliyor..." : "Sipariş Talebi Oluştur"}
+            {isPending ? "Gönderiliyor..." : texts?.["checkout.submit"] ?? "Sipariş Talebi Oluştur"}
           </button>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Online ödeme alınmamaktadır. Sipariş talebiniz firma tarafından onaylandıktan sonra
-            sizinle iletişime geçilir.
+            {texts?.["checkout.noOnlinePayment"] ?? "Online ödeme alınmamaktadır. Sipariş talebiniz firma tarafından onaylandıktan sonra sizinle iletişime geçilir."}
           </p>
         </div>
       </aside>

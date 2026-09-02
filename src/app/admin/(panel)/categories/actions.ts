@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { mediaRefSchema } from "@/lib/validation/media-url";
 
@@ -31,6 +32,8 @@ const categoryFormSchema = z.object({
     (value) => Number(value ?? 0),
     z.number().int("Tam sayı giriniz").min(0).max(999),
   ),
+  seoTitle: z.string().trim().max(70).optional().or(z.literal("")),
+  seoDescription: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
@@ -46,7 +49,8 @@ export async function saveCategoryAction(
   _previousState: CategoryActionState,
   formData: FormData,
 ): Promise<CategoryActionState> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = categoryFormSchema.safeParse({
     name: formData.get("name"),
@@ -55,6 +59,8 @@ export async function saveCategoryAction(
     image: formData.get("image"),
     active: formData.get("active") === "on",
     sortOrder: formData.get("sortOrder"),
+    seoTitle: formData.get("seoTitle") ?? "",
+    seoDescription: formData.get("seoDescription") ?? "",
   });
   if (!parsed.success) {
     return { error: "Lütfen form alanlarını kontrol edin.", fieldErrors: fieldErrorsFrom(parsed.error) };
@@ -68,16 +74,28 @@ export async function saveCategoryAction(
     image: input.image,
     active: input.active,
     sortOrder: input.sortOrder,
+    seoTitle: input.seoTitle || null,
+    seoDescription: input.seoDescription || null,
   };
 
   const id = formData.get("id");
 
+  const isNew = !(typeof id === "string" && id);
+  let categoryId = typeof id === "string" && id ? id : "";
   try {
-    if (typeof id === "string" && id) {
-      await prisma.category.update({ where: { id }, data });
+    if (!isNew) {
+      await prisma.category.update({ where: { id: categoryId }, data });
     } else {
-      await prisma.category.create({ data });
+      const created = await prisma.category.create({ data });
+      categoryId = created.id;
     }
+    await recordAudit({
+      actor: admin,
+      action: isNew ? "CREATE" : "UPDATE",
+      entityType: "Category",
+      entityId: categoryId,
+      summary: isNew ? `${input.name} kategorisi oluşturuldu` : `${input.name} kategorisi güncellendi`,
+    });
   } catch (error) {
     if (error instanceof Error && error.message.includes("categories_slug_key")) {
       return {
@@ -95,11 +113,25 @@ export async function saveCategoryAction(
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
   const id = z.string().uuid().safeParse(formData.get("id"));
   if (!id.success) return;
 
+  const existing = await prisma.category.findUnique({
+    where: { id: id.data },
+    select: { name: true },
+  });
+  if (!existing) return;
+
   await prisma.category.delete({ where: { id: id.data } });
+  await recordAudit({
+    actor: admin,
+    action: "DELETE",
+    entityType: "Category",
+    entityId: id.data,
+    summary: `${existing.name} kategorisi silindi`,
+  });
   revalidatePath("/admin/categories");
   revalidatePath("/");
 }

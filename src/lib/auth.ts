@@ -59,9 +59,33 @@ export async function requireAdmin() {
 
   const admin = await prisma.adminUser.findFirst({
     where: { id: adminId, active: true },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, role: true },
   });
   if (!admin) redirect("/admin/login");
 
   return admin;
+}
+
+export type AdminSession = Awaited<ReturnType<typeof requireAdmin>>;
+
+const ROLE_LEVEL: Record<"ADMIN" | "EDITOR", number> = {
+  ADMIN: 2,
+  EDITOR: 1,
+};
+
+/**
+ * Yetki seviyesi kontrolü: belirtilen minimum role sahip olmayan admin'i reddeder.
+ * EDITOR yalnızca kendi seviyesindeki işlemleri yapabilir; ADMIN-only işlemlerde
+ * null döner (çağıran aksiyon erken return eder) veya redirect eder.
+ */
+export async function requireRole(
+  minimum: "ADMIN" | "EDITOR",
+): Promise<AdminSession | null> {
+  const admin = await requireAdmin();
+  if (ROLE_LEVEL[admin.role] < ROLE_LEVEL[minimum]) return null;
+  return admin;
+}
+
+export function isAdmin(admin: AdminSession): boolean {
+  return admin.role === "ADMIN";
 }

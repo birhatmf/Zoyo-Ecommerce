@@ -17,6 +17,8 @@ export type CategoryFormDefaults = {
   image?: string;
   active?: boolean;
   sortOrder?: number;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 const inputClass =
@@ -112,6 +114,27 @@ export function CategoryForm({ defaults = {} }: { defaults?: CategoryFormDefault
           <input type="checkbox" name="active" defaultChecked={defaults.active ?? true} className="size-4 accent-accent" />
           Yayında
         </label>
+        <div>
+          <span className="mb-1.5 block text-sm text-muted-foreground">SEO Başlığı</span>
+          <input
+            name="seoTitle"
+            maxLength={70}
+            defaultValue={defaults.seoTitle}
+            placeholder="Boşsa kategori adı kullanılır"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <span className="mb-1.5 block text-sm text-muted-foreground">SEO Açıklaması</span>
+          <textarea
+            name="seoDescription"
+            rows={2}
+            maxLength={200}
+            defaultValue={defaults.seoDescription}
+            placeholder="Boşsa kategori açıklaması kullanılır"
+            className={`${inputClass} resize-y`}
+          />
+        </div>
       </div>
 
       <div className="mt-6 flex items-center gap-3">

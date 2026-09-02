@@ -1,27 +1,29 @@
 import { HeaderBar } from "@/components/storefront/header-bar";
 import { whatsappUrl } from "@/lib/format";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontTexts } from "@/lib/storefront-text";
 import { getActiveCategories } from "@/services/catalog.service";
 import { getHeaderLinks } from "@/services/content.service";
 
-// Yönetim panelinden link tanımlanmamışsa kullanılan varsayılan menü
-const defaultLinks = [
-  { label: "Ürünler", href: "/urunler" },
-  { label: "Hakkımızda", href: "/hakkimizda" },
-  { label: "İletişim", href: "/iletisim" },
-];
-
 export async function Header({ overlay = false }: { overlay?: boolean }) {
-  const [settings, categories, headerLinks] = await Promise.all([
+  const [settings, categories, headerLinks, texts] = await Promise.all([
     getSiteSettings(),
     getActiveCategories(),
     getHeaderLinks(),
+    getStorefrontTexts(),
   ]);
 
   const siteName = settings.siteShortName || settings.siteName || "Zoyo";
   const waLink = settings.whatsapp
     ? whatsappUrl(settings.whatsapp, "Merhaba, ürünleriniz hakkında bilgi almak istiyorum.")
     : null;
+
+  // Yönetim panelinden link tanımlanmamışsa CMS metinleriyle varsayılan menü.
+  const defaultLinks = [
+    { label: texts["navbar.products"], href: "/urunler" },
+    { label: texts["navbar.about"], href: "/hakkimizda" },
+    { label: texts["navbar.contact"], href: "/iletisim" },
+  ];
 
   return (
     <HeaderBar
@@ -36,6 +38,12 @@ export async function Header({ overlay = false }: { overlay?: boolean }) {
       categories={categories.map((c) => ({ name: c.name, slug: c.slug }))}
       waLink={waLink}
       overlay={overlay}
+      texts={{
+        categories: texts["navbar.categories"],
+        cart: texts["navbar.cart"],
+        openMenu: texts["navbar.openMenu"],
+        whatsapp: texts["navbar.whatsapp"],
+      }}
     />
   );
 }

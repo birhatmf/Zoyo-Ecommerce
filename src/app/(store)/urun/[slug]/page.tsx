@@ -21,12 +21,16 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return { title: "Ürün Bulunamadı" };
+  const title = product.seoTitle || product.name;
+  const description = product.seoDescription || product.shortDescription || undefined;
+  const cover = product.images.find((i) => i.isCover) ?? product.images[0];
   return {
-    title: product.name,
-    description: product.shortDescription ?? undefined,
+    title,
+    description,
     openGraph: {
-      title: product.name,
-      description: product.shortDescription ?? undefined,
+      title,
+      description,
+      ...(cover ? { images: [{ url: cover.url }] } : {}),
     },
   };
 }

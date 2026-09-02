@@ -17,7 +17,15 @@ export async function generateCmsMetadata(
   fallbackTitle: string,
 ): Promise<Metadata> {
   const page = await getCmsPage(slug);
-  return { title: page?.title ?? fallbackTitle };
+  const title = page?.seoTitle || page?.title || fallbackTitle;
+  return {
+    title,
+    description: page?.seoDescription || undefined,
+    openGraph: {
+      title,
+      description: page?.seoDescription || undefined,
+    },
+  };
 }
 
 export async function CmsPageView({ slug }: CmsPageViewProps) {

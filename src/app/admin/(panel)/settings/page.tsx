@@ -24,6 +24,11 @@ const sections = [
     title: "Sipariş Maddeleri",
     description: "Checkout'ta müşteriye gösterilen madde şablonları.",
   },
+  {
+    href: "/admin/settings/texts",
+    title: "Storefront Metinleri",
+    description: "Navbar, footer, checkout ve başarı ekranındaki sabit metinler.",
+  },
 ];
 
 export default function AdminSettingsPage() {

@@ -18,6 +18,12 @@ type HeaderBarProps = {
   waLink: string | null;
   // Slider üzerinde şeffaf başlangıç; kaydırınca katı hale döner
   overlay?: boolean;
+  texts?: {
+    categories: string;
+    cart: string;
+    openMenu: string;
+    whatsapp: string;
+  };
 };
 
 const SCROLL_THRESHOLD = 32;
@@ -30,6 +36,7 @@ export function HeaderBar({
   categories,
   waLink,
   overlay = false,
+  texts,
 }: HeaderBarProps) {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -67,6 +74,10 @@ export function HeaderBar({
             links={links}
             categories={categories}
             light={light}
+            texts={{
+              categories: texts?.categories ?? "Kategoriler",
+              openMenu: texts?.openMenu ?? "Menüyü aç",
+            }}
           />
           <Link
             href="/"
@@ -109,7 +120,7 @@ export function HeaderBar({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="WhatsApp ile iletişime geç"
+              aria-label={texts?.whatsapp ?? "WhatsApp ile iletişime geç"}
               className={`inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground ${
                 light ? "text-background" : "text-muted-foreground"
               }`}
@@ -119,7 +130,7 @@ export function HeaderBar({
           )}
           <Link
             href="/sepet"
-            aria-label="Sepet"
+            aria-label={texts?.cart ?? "Sepet"}
             className={`relative inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground ${
               light ? "text-background" : "text-muted-foreground"
             }`}

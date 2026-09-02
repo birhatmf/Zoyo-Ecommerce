@@ -3,17 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
+const baseLinks = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Siparişler" },
   { href: "/admin/products", label: "Ürünler" },
   { href: "/admin/categories", label: "Kategoriler" },
   { href: "/admin/content", label: "İçerik" },
-  { href: "/admin/settings", label: "Ayarlar" },
+  { href: "/admin/media", label: "Medya" },
 ];
 
-export function AdminNav() {
+// Yalnızca ADMIN rolüne gösterilen bağlantılar.
+const adminLinks = [
+  { href: "/admin/settings", label: "Ayarlar" },
+  { href: "/admin/users", label: "Yöneticiler" },
+];
+
+export function AdminNav({ role = "EDITOR" }: { role?: "ADMIN" | "EDITOR" }) {
   const pathname = usePathname();
+  const links = role === "ADMIN" ? [...baseLinks, ...adminLinks] : baseLinks;
 
   return (
     <nav className="flex flex-col gap-0.5" aria-label="Yönetim menüsü">

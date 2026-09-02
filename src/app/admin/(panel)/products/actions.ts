@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { saveImage } from "@/lib/storage";
 import { mediaRefSchema } from "@/lib/validation/media-url";
@@ -51,6 +52,9 @@ const productFormSchema = z.object({
   productionTime: z.string().trim().max(255).optional().or(z.literal("")),
   deliveryInformation: z.string().trim().max(1000).optional().or(z.literal("")),
 
+  seoTitle: z.string().trim().max(70).optional().or(z.literal("")),
+  seoDescription: z.string().trim().max(200).optional().or(z.literal("")),
+
   status: z.enum(["DRAFT", "ACTIVE", "INACTIVE"]),
   featured: z.boolean(),
 });
@@ -69,6 +73,8 @@ function parseProductForm(formData: FormData) {
     dimensions: formData.get("dimensions") ?? "",
     productionTime: formData.get("productionTime") ?? "",
     deliveryInformation: formData.get("deliveryInformation") ?? "",
+    seoTitle: formData.get("seoTitle") ?? "",
+    seoDescription: formData.get("seoDescription") ?? "",
     status: formData.get("status") ?? "DRAFT",
     featured: formData.get("featured") === "on",
   });
@@ -87,7 +93,8 @@ export async function saveProductAction(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   const parsed = parseProductForm(formData);
   if (!parsed.success) {
@@ -121,18 +128,29 @@ export async function saveProductAction(
     dimensions: input.dimensions || null,
     productionTime: input.productionTime || null,
     deliveryInformation: input.deliveryInformation || null,
+    seoTitle: input.seoTitle || null,
+    seoDescription: input.seoDescription || null,
     status: input.status,
     featured: input.featured,
   };
 
   try {
     let productId = typeof id === "string" && id ? id : null;
+    const isNew = !productId;
     if (productId) {
       await prisma.product.update({ where: { id: productId }, data });
     } else {
       const created = await prisma.product.create({ data });
       productId = created.id;
     }
+    await recordAudit({
+      actor: admin,
+      action: isNew ? "CREATE" : "UPDATE",
+      entityType: "Product",
+      entityId: productId,
+      summary: isNew ? `${input.name} ürünü oluşturuldu` : `${input.name} ürünü güncellendi`,
+      metadata: { status: input.status },
+    });
 
     // Form ile seçilen görseller (yeni üründe de yüklenebilsin)
     const files = formData
@@ -173,11 +191,25 @@ export async function saveProductAction(
 const deleteSchema = z.object({ id: z.string().uuid() });
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return;
 
+  const existing = await prisma.product.findUnique({
+    where: { id: parsed.data.id },
+    select: { name: true },
+  });
+  if (!existing) return;
+
   await prisma.product.delete({ where: { id: parsed.data.id } });
+  await recordAudit({
+    actor: admin,
+    action: "DELETE",
+    entityType: "Product",
+    entityId: parsed.data.id,
+    summary: `${existing.name} ürünü silindi`,
+  });
   revalidatePath("/admin/products");
   revalidatePath("/urunler");
 }
@@ -194,7 +226,8 @@ const mediaRef = mediaRefSchema;
 
 // Dosyaları yükler ve ürüne ekler; çoklu seçim destekler
 export async function uploadProductImageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _imgAdmin = await requireRole("EDITOR");
+  if (!_imgAdmin) return;
 
   const productId = z.string().uuid().safeParse(formData.get("productId"));
   const files = [
@@ -227,7 +260,8 @@ export async function uploadProductImageAction(formData: FormData): Promise<void
 }
 
 export async function setCoverImageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _imgAdmin = await requireRole("EDITOR");
+  if (!_imgAdmin) return;
   const parsed = imageActionSchema.safeParse({
     productId: formData.get("productId"),
     imageId: formData.get("imageId"),
@@ -235,6 +269,14 @@ export async function setCoverImageAction(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   const { productId, imageId } = parsed.data;
+
+  // IDOR koruması: görsel gerçekten bu ürüne ait olmalı.
+  const image = await prisma.productImage.findUnique({
+    where: { id: imageId },
+    select: { productId: true },
+  });
+  if (!image || image.productId !== productId) return;
+
   await prisma.$transaction([
     prisma.productImage.updateMany({
       where: { productId },
@@ -250,7 +292,8 @@ export async function setCoverImageAction(formData: FormData): Promise<void> {
 }
 
 export async function updateImageMetaAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _imgAdmin = await requireRole("EDITOR");
+  if (!_imgAdmin) return;
 
   const productId = z.string().uuid().safeParse(formData.get("productId"));
   if (!productId.success) return;
@@ -287,7 +330,8 @@ export async function updateImageMetaAction(formData: FormData): Promise<void> {
 }
 
 export async function addImageUrlAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _imgAdmin = await requireRole("EDITOR");
+  if (!_imgAdmin) return;
   const schema = z.object({
     productId: z.string().uuid(),
     url: mediaRef,
@@ -317,7 +361,8 @@ export async function addImageUrlAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteImageAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const _imgAdmin = await requireRole("EDITOR");
+  if (!_imgAdmin) return;
   const parsed = imageActionSchema.safeParse({
     productId: formData.get("productId"),
     imageId: formData.get("imageId"),

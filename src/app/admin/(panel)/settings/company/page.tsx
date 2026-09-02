@@ -18,6 +18,10 @@ const fields: SettingsField[] = [
   { name: "footerLogoUrl", label: "Footer Logo", type: "media" },
   { name: "faviconUrl", label: "Favicon", type: "media" },
   { name: "address", label: "Adres", type: "textarea" },
+  { name: "seoTitle", label: "SEO Başlığı (default)", hint: "Site geneli varsayılan başlık" },
+  { name: "seoTitleTemplate", label: "SEO Başlık Şablonu", hint: "Örn. %s | Firma Adı" },
+  { name: "seoDescription", label: "SEO Açıklaması", type: "textarea", hint: "Site geneli varsayılan açıklama" },
+  { name: "seoOgImage", label: "OpenGraph Görseli", type: "media" },
 ];
 
 export default async function AdminCompanySettingsPage() {

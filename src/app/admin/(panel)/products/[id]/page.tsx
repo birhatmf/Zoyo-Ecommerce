@@ -12,6 +12,7 @@ import {
   updateImageMetaAction,
   uploadProductImageAction,
 } from "@/app/admin/(panel)/products/actions";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { ProductForm } from "@/components/admin/product-form";
 import { prisma } from "@/lib/prisma";
 
@@ -49,16 +50,14 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="mt-1 font-heading text-xl font-medium">{product.name}</h1>
-        <form action={deleteProductAction}>
-          <input type="hidden" name="id" value={product.id} />
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-destructive/30 px-3 text-sm text-destructive transition-colors hover:bg-destructive/10"
-          >
-            <Trash2 className="size-4" />
-            Ürünü Sil
-          </button>
-        </form>
+        <div className="flex items-center gap-2">
+          <ConfirmDeleteButton
+            action={deleteProductAction}
+            hiddenFields={{ id: product.id }}
+            label="Ürünü Sil"
+            entityName={product.name}
+          />
+        </div>
       </div>
 
       {/* Görsel yönetimi */}
@@ -223,6 +222,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             deliveryInformation: product.deliveryInformation ?? "",
             status: product.status,
             featured: product.featured,
+            seoTitle: product.seoTitle ?? "",
+            seoDescription: product.seoDescription ?? "",
           }}
         />
       </section>
