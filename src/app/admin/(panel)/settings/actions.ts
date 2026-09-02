@@ -318,3 +318,61 @@ export async function saveStorefrontTextAction(
   revalidatePath("/");
   return { saved: true };
 }
+
+// Footer canlı düzenleyici için tek-key storefront text kaydı (plain action).
+export async function saveStorefrontTextInlineAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
+
+  const parsed = storefrontTextSchema.safeParse({
+    key: formData.get("key"),
+    value: formData.get("value") ?? "",
+  });
+  if (!parsed.success) return;
+
+  const def = STOREFRONT_TEXT_DEFS.find((d) => d.key === parsed.data.key);
+  if (!def) return;
+
+  await prisma.storefrontText.upsert({
+    where: { key: parsed.data.key as StorefrontTextKey },
+    update: { value: parsed.data.value },
+    create: { key: parsed.data.key as StorefrontTextKey, value: parsed.data.value },
+  });
+
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "StorefrontText",
+    entityId: parsed.data.key,
+    summary: `Storefront metni güncellendi: ${def.label}`,
+  });
+
+  revalidatePath("/");
+}
+
+// Footer canlı düzenleyici için tek-key site setting kaydı (plain action).
+export async function saveSettingInlineAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
+
+  const key = z.string().safeParse(formData.get("key"));
+  const value = z.string().max(2000).safeParse(formData.get("value") ?? "");
+  if (!key.success || !value.success) return;
+  if (!SETTING_KEYS.includes(key.data as (typeof SETTING_KEYS)[number])) return;
+
+  await prisma.siteSetting.upsert({
+    where: { key: key.data },
+    update: { value: value.data },
+    create: { key: key.data, value: value.data },
+  });
+
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "SiteSetting",
+    entityId: key.data,
+    summary: `Site ayarı güncellendi: ${key.data}`,
+  });
+
+  revalidatePath("/");
+}

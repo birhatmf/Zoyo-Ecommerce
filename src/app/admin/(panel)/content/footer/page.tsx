@@ -9,8 +9,10 @@ import {
   saveFooterLinkAction,
 } from "@/app/admin/(panel)/content/actions";
 import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
+import { FooterInlineEditor } from "@/components/admin/footer-inline-editor";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontText } from "@/lib/storefront-text";
 
 export const metadata: Metadata = { title: "Footer Yönetimi" };
 
@@ -18,16 +20,19 @@ const inputClass =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring";
 
 export default async function AdminFooterContentPage() {
-  const [groups, settings] = await Promise.all([
+  const [groups, settings, contactHeading] = await Promise.all([
     prisma.footerLinkGroup.findMany({
       orderBy: { sortOrder: "asc" },
       include: { links: { orderBy: { sortOrder: "asc" } } },
     }),
     getSiteSettings(),
+    getStorefrontText("footer.contactHeading"),
   ]);
 
+  const siteName = settings.siteName || "Zoyo Mobilya";
+
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <Link
         href="/admin/content"
         className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
@@ -35,6 +40,27 @@ export default async function AdminFooterContentPage() {
         ← İçerik
       </Link>
       <h1 className="mt-1 font-heading text-xl font-medium">Footer Yönetimi</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Aşağıdaki canlı önizlemede metne tıklayıp doğrudan düzenleyin; odak
+        kaybedilince otomatik kaydedilir.
+      </p>
+
+      {/* Canlı önizleme */}
+      <div className="mt-6">
+        <FooterInlineEditor
+          groups={groups}
+          settings={settings}
+          contactHeading={contactHeading}
+          siteShortName={settings.siteShortName || siteName}
+        />
+      </div>
+
+      {/* Ayrıntılı link/grup yönetimi (ekle/sil/sırala) */}
+      <h2 className="mt-8 font-heading text-lg font-medium">Link Grupları ve Detay Yönetimi</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Link ekleme, silme ve sıralama işlemleri buradan yapılır. Metinleri
+        yukarıdaki canlı önizlemeden düzenleyebilirsiniz.
+      </p>
 
       {/* Copyright */}
       <form
