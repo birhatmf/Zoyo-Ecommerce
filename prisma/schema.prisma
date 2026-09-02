@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum AdminRole {
+  ADMIN
+  EDITOR
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  PAYMENT_PENDING
+  PAID
+  IN_PRODUCTION
+  READY
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum CmsPageType {
+  LEGAL
+  CORPORATE
+  CUSTOM
+}
+
+enum InvoiceType {
+  INDIVIDUAL
+  CORPORATE
+}
+
+// ---------- Auth ----------
+
+model AdminUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(ADMIN)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id                  String        @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String        @unique
+  productCode         String        @unique
+  shortDescription    String?
+  description         String?
+  price               Decimal       @db.Decimal(12, 2)
+  discountPrice       Decimal?      @db.Decimal(12, 2)
+  categoryId          String?       @db.Uuid
+  material            String?
+  dimensions          String?
+  productionTime      String?
+  deliveryInformation String?
+  status              ProductStatus @default(DRAFT)
+  featured            Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  category Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  images   ProductImage[]
+  orderItems OrderItem[]
+
+  @@index([status, featured])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(uuid()) @db.Uuid
+  productId String  @db.Uuid
+  url       String
+  altText   String?
+  sortOrder Int     @default(0)
+  isCover   Boolean @default(false)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ---------- Orders ----------
+
+model Order {
+  id               String      @id @default(uuid()) @db.Uuid
+  orderNumber      String      @unique
+  customerFirstName String
+  customerLastName String
+  phone            String
+  phoneNormalized  String
+  email            String?
+  city             String
+  district         String
+  address          String
+  postalCode       String?
+  invoiceType      InvoiceType @default(INDIVIDUAL)
+  tcNumber         String?
+  companyName      String?
+  taxOffice        String?
+  taxNumber        String?
+  invoiceAddress   String?
+  subtotal         Decimal     @db.Decimal(12, 2)
+  total            Decimal     @db.Decimal(12, 2)
+  status           OrderStatus @default(PENDING)
+  customerNote     String?
+  adminNote        String?
+  acceptedTerms     Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  items OrderItem[]
+  notes OrderNote[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  orderId     String  @db.Uuid
+  productId   String? @db.Uuid
+  productName String
+  productCode String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(12, 2)
+  totalPrice  Decimal @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// Sipariş numarası üretimi için atomik sayaç (race-condition önleme)
+model OrderSequence {
+  year   Int    @id
+  lastNo Int    @default(0)
+
+  @@map("order_sequences")
+}
+
+// Yönetici sipariş maddeleri / notları (checklist)
+model OrderNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @db.Uuid
+  content   String
+  done      Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_notes")
+}
+
+// ---------- Bank ----------
+
+model BankAccount {
+  id            String   @id @default(uuid()) @db.Uuid
+  bankName      String
+  accountHolder String
+  iban          String
+  description   String?
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("bank_accounts")
+}
+
+// ---------- CMS ----------
+
+model CmsPage {
+  id        String      @id @default(uuid()) @db.Uuid
+  title     String
+  slug      String      @unique
+  content   String
+  type      CmsPageType @default(CUSTOM)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("cms_pages")
+}
+
+model HeaderLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  label     String
+  href      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("header_links")
+}
+
+model HeroSlide {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  subtitle    String?
+  description String?
+  imageUrl    String
+  ctaLabel    String?
+  ctaUrl      String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("hero_slides")
+}
+
+model HomepageContent {
+  id                    String   @id @default("homepage")
+  heroTitle             String?
+  heroSubtitle          String?
+  heroDescription       String?
+  heroImageDesktop      String?
+  heroImageMobile       String?
+  heroCtaLabel          String?
+  heroCtaUrl            String?
+  heroCtaSecondaryLabel String?
+  heroCtaSecondaryUrl   String?
+  heroAlignment         String   @default("left")
+  heroActive            Boolean  @default(true)
+
+  storyTitle       String?
+  storyDescription String?
+  storyImage       String?
+
+  customProductionTitle       String?
+  customProductionDescription String?
+  customProductionButtonLabel String?
+  customProductionButtonUrl   String?
+  customProductionType        String  @default("WHATSAPP")
+
+  active Boolean @default(true)
+
+  @@map("homepage_content")
+}
+
+model FooterLinkGroup {
+  id        String       @id @default(uuid()) @db.Uuid
+  title     String
+  sortOrder Int          @default(0)
+  links     FooterLink[]
+
+  @@map("footer_link_groups")
+}
+
+model FooterLink {
+  id       String @id @default(uuid()) @db.Uuid
+  groupId  String @db.Uuid
+  label    String
+  url      String
+  sortOrder Int   @default(0)
+
+  group FooterLinkGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("footer_links")
+}
+
+// ---------- Settings ----------
+
+model SiteSetting {
+  key   String @id
+  value String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}

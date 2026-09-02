@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(ls -la /home/birhatmf/Masaüstü/zoyo-ecom/src/app/\\(store\\)/urun/\\[slug\\]/ 2>&1; echo \"---\"; cat /home/birhatmf/Masaüstü/zoyo-ecom/src/app/\\(store\\)/urun/\\[slug\\]/page.tsx 2>&1 | head -50)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
