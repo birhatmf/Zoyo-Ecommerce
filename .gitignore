@@ -47,3 +47,6 @@ src/generated
 # runtime uploads
 /storage
 /public/uploads
+
+# pm2 logs
+/logs

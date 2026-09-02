@@ -47,6 +47,11 @@ function SubmitButton() {
         required
         accept="image/jpeg,image/png,image/webp,image/avif"
         className="sr-only"
+        onChange={(event) => {
+          if (event.target.files?.length) {
+            event.target.form?.requestSubmit();
+          }
+        }}
       />
     </label>
   );
