@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveImage } from "@/lib/storage";
+import { mediaRefSchema, safeUrlSchema } from "@/lib/validation/media-url";
 
 // Ana sayfa görselleri: yükleme anında kaydedilir
 const HOMEPAGE_IMAGE_FIELDS = ["heroImageDesktop", "heroImageMobile", "storyImage"] as const;
@@ -77,16 +78,16 @@ const homepageSchema = z.object({
   heroDescription: optionalText(1000),
   heroImageDesktop: z.preprocess(
     (value) => (value === "" ? null : value),
-    z.string().max(2000).nullable(),
+    mediaRefSchema.nullable(),
   ),
   heroImageMobile: z.preprocess(
     (value) => (value === "" ? null : value),
-    z.string().max(2000).nullable(),
+    mediaRefSchema.nullable(),
   ),
   heroCtaLabel: optionalText(100),
-  heroCtaUrl: optionalText(500),
+  heroCtaUrl: safeUrlSchema.optional().or(z.literal("")),
   heroCtaSecondaryLabel: optionalText(100),
-  heroCtaSecondaryUrl: optionalText(500),
+  heroCtaSecondaryUrl: safeUrlSchema.optional().or(z.literal("")),
   heroAlignment: z.enum(["left", "center"]),
   heroActive: z.boolean(),
 
@@ -94,7 +95,7 @@ const homepageSchema = z.object({
   storyDescription: optionalText(2000),
   storyImage: z.preprocess(
     (value) => (value === "" ? null : value),
-    z.string().max(2000).nullable(),
+    mediaRefSchema.nullable(),
   ),
 
   customProductionTitle: optionalText(255),
@@ -148,13 +149,9 @@ const heroSlideSchema = z.object({
   title: z.string().trim().min(2, "Başlık zorunludur").max(255),
   subtitle: optionalText(255),
   description: optionalText(500),
-  imageUrl: z
-    .string()
-    .trim()
-    .min(1, "Görsel zorunludur (dosya seçin veya adres girin)")
-    .max(2000),
+  imageUrl: mediaRefSchema, // "Görsel zorunludur" + whitelist kontrolü
   ctaLabel: optionalText(100),
-  ctaUrl: optionalText(500),
+  ctaUrl: safeUrlSchema.optional().or(z.literal("")),
   sortOrder: z.preprocess(
     (value) => Number(value ?? 0),
     z.number().int().min(0).max(999),
@@ -236,14 +233,9 @@ export async function toggleHeroSlideActiveAction(
 const headerLinkSchema = z.object({
   id: z.uuid().optional().or(z.literal("")),
   label: z.string().trim().min(1, "Etiket zorunludur").max(100),
-  href: z
-    .string()
-    .trim()
-    .min(1, "Hedef zorunludur")
-    .max(500)
-    .refine((value) => value.startsWith("/") || /^https?:\/\//i.test(value), {
-      message: "Hedef / ile başlamalı ya da http(s) adresi olmalıdır",
-    }),
+  href: safeUrlSchema.refine((value) => value.length > 0, {
+    message: "Hedef zorunludur",
+  }),
   sortOrder: z.preprocess(
     (value) => Number(value ?? 0),
     z.number().int().min(0).max(999),
@@ -343,7 +335,9 @@ export async function deleteFooterGroupAction(formData: FormData): Promise<void>
 const linkSchema = z.object({
   groupId: z.uuid(),
   label: z.string().trim().min(1, "Etiket zorunludur").max(255),
-  url: z.string().trim().min(1, "URL zorunludur").max(500),
+  url: safeUrlSchema.refine((value) => value.length > 0, {
+    message: "URL zorunludur",
+  }),
   sortOrder: z.preprocess(
     (value) => Number(value ?? 0),
     z.number().int().min(0).max(999),

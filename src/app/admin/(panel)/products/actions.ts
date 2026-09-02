@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveImage } from "@/lib/storage";
+import { mediaRefSchema } from "@/lib/validation/media-url";
 
 export type ActionState = {
   error?: string;
@@ -188,15 +189,8 @@ const imageActionSchema = z.object({
   imageId: z.string().uuid(),
 });
 
-// Göreli yol (/api/media/x.png) veya tam http(s) adresi kabul edilir
-const mediaRef = z
-  .string()
-  .trim()
-  .min(1, "Görsel adresi zorunludur")
-  .max(2000)
-  .refine((value) => value.startsWith("/") || /^https?:\/\//i.test(value), {
-    message: "Geçerli bir görsel adresi giriniz",
-  });
+// Göreli yol (/api/media/x.png) veya allowlist'teki bir tam http(s) adresi
+const mediaRef = mediaRefSchema;
 
 // Dosyaları yükler ve ürüne ekler; çoklu seçim destekler
 export async function uploadProductImageAction(formData: FormData): Promise<void> {

@@ -130,11 +130,15 @@ export function CheckoutForm({
     setFormError("");
     setIsPending(true);
     try {
+      // Fatura adresi boşsa teslimat adresi kullanılır (form'daki vaat).
+      const invoiceAddress = form.invoiceAddress.trim() || form.address.trim();
+      // form içindeki invoiceAddress'i override edeceğimiz için ayırıyoruz
+      const payload = { ...form, invoiceAddress };
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          ...payload,
           items: activeItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,

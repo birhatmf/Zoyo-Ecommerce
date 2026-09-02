@@ -11,12 +11,27 @@ if (!connectionString) {
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
+// Seed betiği yanlışlıkla production'da çalıştırılmasın.
+// Seed, geliştirme veya staging için örnek veri üretir; prod DB'yi bozar.
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_SEED !== "true") {
+  throw new Error(
+    "Seed cannot run in production. Set ALLOW_SEED=true to override (only for ops migrations).",
+  );
+}
+
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
-  if (!adminPassword || adminPassword.length < 8) {
+  // src/lib/security/password.ts ile aynı politika uygulanır.
+  if (!adminPassword || adminPassword.length < 12) {
     throw new Error(
-      "SEED_ADMIN_PASSWORD must be set (min 8 chars). Do not hardcode production credentials.",
+      "SEED_ADMIN_PASSWORD must be set (min 12 chars, 3 character classes).",
+    );
+  }
+  const classesUsed = [/[a-z]/.test(adminPassword), /[A-Z]/.test(adminPassword), /\d/.test(adminPassword), /[^A-Za-z0-9]/.test(adminPassword)].filter(Boolean).length;
+  if (classesUsed < 3) {
+    throw new Error(
+      "SEED_ADMIN_PASSWORD must include at least 3 character classes (lower/upper/digit/symbol).",
     );
   }
 

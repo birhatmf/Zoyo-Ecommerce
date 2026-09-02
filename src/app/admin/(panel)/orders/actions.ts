@@ -41,7 +41,7 @@ const contactUpdateSchema = z.object({
 });
 
 export async function updateOrderContactAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = contactUpdateSchema.safeParse({
     orderId: formData.get("orderId"),
@@ -65,6 +65,8 @@ export async function updateOrderContactAction(formData: FormData): Promise<void
       phoneNormalized: rest.phone,
       email: email || null,
       postalCode: postalCode || null,
+      lastEditedById: admin.id,
+      lastEditedAt: new Date(),
     },
   });
 
@@ -81,7 +83,7 @@ const noteIdSchema = z.object({
 });
 
 export async function updateOrderAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = updateOrderSchema.safeParse({
     orderId: formData.get("orderId"),
@@ -97,6 +99,8 @@ export async function updateOrderAction(formData: FormData): Promise<void> {
     data: {
       status,
       adminNote: adminNote || null,
+      lastEditedById: admin.id,
+      lastEditedAt: new Date(),
     },
   });
 

@@ -52,8 +52,19 @@ model AdminUser {
   passwordHash String
   role         AdminRole @default(ADMIN)
   active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+
+  // TOTP / 2FA: secret base32 saklanır, henüz onaylanmamış secret `null` olur.
+  // `totpEnabled` true ise giriş sırasında TOTP kodu zorunludur.
+  totpSecret     String?
+  totpEnabled    Boolean   @default(false)
+  totpVerifiedAt DateTime?
+
+  // Son başarısız giriş sayacı — aktif oturum engelleme için
+  failedLoginCount Int @default(0)
+  lockedUntil      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("admin_users")
 }
@@ -144,8 +155,17 @@ model Order {
   customerNote     String?
   adminNote        String?
   acceptedTerms     Json?
+  // Yasal metin versiyonu snapshot'ı: hangi CMS sayfa versiyonu (updatedAt)
+  // kabul edildi? KVKK uyumu için müşteri Kabul anında geçerli metnin izini
+  // tutmamız gerekir. Versiyon yoksa null = henüz snapshot alınmadı.
+  acceptedLegal    Json?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+
+  // Audit trail: sipariş admin tarafından en son ne zaman ve kim tarafından
+  // düzenlendi (status/adminNote/müşteri bilgisi güncellemeleri).
+  lastEditedById String?   @db.Uuid
+  lastEditedAt   DateTime?
 
   items OrderItem[]
   notes OrderNote[]

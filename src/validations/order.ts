@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const TR_PHONE_REGEX = /^(?:\+90|0)?5\d{9}$/;
 
+// Yalnızca normalize eder (+90XXXXXXXXXX) — form içinde değer döndürmek için.
 export const trPhoneSchema = z
   .string()
   .trim()
@@ -15,10 +16,31 @@ export const trPhoneSchema = z
     return `+90${val}`;
   });
 
+// Hem orijinal kullanıcı girişini hem de normalize edilmiş halini döndürür.
+// API tarafında Order.phone (orijinal) ile phoneNormalized (E.164) ayrı kaydedilir.
+export const trPhoneWithRawSchema = z
+  .string()
+  .trim()
+  .transform((val) => val.replace(/[\s()-]/g, ""))
+  .refine((val) => TR_PHONE_REGEX.test(val), {
+    message: "Geçerli bir telefon numarası giriniz (05xx xxx xx xx)",
+  })
+  .transform((val) => {
+    const normalized =
+      val.startsWith("+90")
+        ? val
+        : val.startsWith("0")
+          ? `+90${val.slice(1)}`
+          : `+90${val}`;
+    // Orijinal ham giriş (normalize edilmemiş); fatura vb. çıktılar için.
+    const raw = val;
+    return { raw, normalized };
+  });
+
 export const checkoutSchema = z.object({
   customerFirstName: z.string().trim().min(2, "Ad en az 2 karakter olmalıdır").max(100),
   customerLastName: z.string().trim().min(2, "Soyad en az 2 karakter olmalıdır").max(100),
-  phone: trPhoneSchema,
+  phone: trPhoneWithRawSchema,
   email: z
     .string()
     .trim()

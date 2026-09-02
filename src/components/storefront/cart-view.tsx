@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Minus, Plus, Trash2 } from "lucide-react";
 
-import { removeFromCart, setQuantity } from "@/lib/cart";
+import { removeFromCart, setQuantity, useCartStorageWarning } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import {
   effectivePrice,
@@ -15,6 +15,7 @@ import {
 
 export function CartView() {
   const { cart, products, isLoading } = useCartProducts();
+  const storageWarning = useCartStorageWarning();
 
   const productMap = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -119,6 +120,19 @@ export function CartView() {
   return (
     <div className="grid gap-12 lg:grid-cols-[1fr_320px]">
       <div>
+        {storageWarning && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2.5 rounded-md border border-amber-300/40 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {storageWarning.reason === "quota"
+                ? "Tarayıcı depolama alanı dolu. Sepetiniz yalnızca bu oturum boyunca saklanacak; sayfa yenilenirse kaybolabilir."
+                : "Tarayıcınız sepeti kalıcı olarak saklamıyor (gizli mod vb.). Sepetiniz yalnızca bu oturum boyunca saklanacak."}
+            </span>
+          </div>
+        )}
         <ul className="divide-y divide-border border-y border-border">
           {activeItems.map((item) => renderLine(item, productMap.get(item.productId)!))}
         </ul>

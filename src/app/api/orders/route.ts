@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 
+import { getActiveLegalSnapshot } from "@/lib/legal";
 import { prisma } from "@/lib/prisma";
-import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, UNKNOWN_IP_LIMITS } from "@/lib/rate-limit";
 import { getSiteSettings } from "@/lib/settings";
 import { checkoutSchemaWithInvoice } from "@/validations/order";
 
@@ -19,25 +21,19 @@ function effectiveUnitPrice(product: {
 type PrismaDecimal = { toString(): string };
 
 export async function POST(request: NextRequest) {
-  // Sipariş spam'ine karşı sıkı limit: IP başına 10 dakikada 5 talep
   const ip = getClientIp(request.headers);
-  const limit = rateLimit(`order-create:${ip}`, 5, 10 * 60_000);
-  if (!limit.ok) {
-    return NextResponse.json(
-      { error: "Çok fazla sipariş talebi gönderildi. Lütfen bir süre sonra tekrar deneyin." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
-    );
-  }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
+    // Geçersiz JSON: kötü niyetli değil, sadece 400. Limiti tetikleme.
     return NextResponse.json({ error: "Geçersiz istek" }, { status: 400 });
   }
 
   const parsed = checkoutSchemaWithInvoice.safeParse(body);
   if (!parsed.success) {
+    // Form alanları geçersiz: kötü niyetli değil, sadece 400. Limiti tetikleme.
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
       const key = issue.path.join(".");
@@ -46,6 +42,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Lütfen form alanlarını kontrol edin.", fieldErrors },
       { status: 400 },
+    );
+  }
+
+  // Validasyondan geçen istekler için spam limiti uygula (IP başına 10 dk'da 5).
+  // Bu sayede form hataları kullanıcıyı haksız yere bloklamaz; ama tekrarlanan
+  // geçerli istekler (örn. otomasyon saldırıları) sınırlanır.
+  const orderLimit = ip === "unknown" ? UNKNOWN_IP_LIMITS.orderPer10Min : 5;
+  const limit = rateLimit(`order-create:${ip}`, orderLimit, 10 * 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Çok fazla sipariş talebi gönderildi. Lütfen bir süre sonra tekrar deneyin." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
     );
   }
 
@@ -63,6 +71,15 @@ export async function POST(request: NextRequest) {
   const settings = await getSiteSettings();
   const prefix = settings.orderPrefix || "ZY";
   const year = new Date().getFullYear();
+
+  // Yasal metin versiyonları transaction içinde alınır — siparişle birlikte
+  // snapshot olarak saklanır (KVKK uyumlu iz kaydı).
+  let legalSnapshot: Awaited<ReturnType<typeof getActiveLegalSnapshot>> = [];
+  try {
+    legalSnapshot = await getActiveLegalSnapshot();
+  } catch {
+    legalSnapshot = [];
+  }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -99,8 +116,8 @@ export async function POST(request: NextRequest) {
           orderNumber,
           customerFirstName: input.customerFirstName,
           customerLastName: input.customerLastName,
-          phone: input.phone,
-          phoneNormalized: input.phone,
+          phone: input.phone.raw,
+          phoneNormalized: input.phone.normalized,
           email: input.email || null,
           city: input.city,
           district: input.district,
@@ -128,6 +145,10 @@ export async function POST(request: NextRequest) {
             distanceSales: true,
             acceptedAt: new Date().toISOString(),
           },
+          acceptedLegal:
+            legalSnapshot.length > 0
+              ? (legalSnapshot as unknown as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
           items: {
             create: products.map((product) => {
               const quantity = quantities.get(product.id)!;

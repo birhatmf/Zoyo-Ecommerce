@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCart } from "@/lib/cart";
 
@@ -36,7 +36,18 @@ export function useCartProducts() {
     [cart],
   );
 
+  // Stale response guard: her fetch'te aktif key ref'e yazılır; cevap geldiğinde
+  // yalnızca aktif key ile eşleşirse state güncellenir. Eski/yavaş istekler
+  // yeni state'i ezmesin diye.
+  const activeKeyRef = useRef(key);
+
+  // Senkron reset: key boşsa state'i temizle (effect içinde setState yapmamak için).
+  if (!key && fetched !== null) {
+    setFetched(null);
+  }
+
   useEffect(() => {
+    activeKeyRef.current = key;
     if (!key) return;
     let cancelled = false;
     fetch("/api/cart", {
@@ -47,10 +58,14 @@ export function useCartProducts() {
       .then(async (response) => {
         if (!response.ok) throw new Error("Sepet bilgileri alınamadı");
         const data = await response.json();
-        if (!cancelled) setFetched({ key, products: data.products });
+        if (cancelled) return;
+        if (activeKeyRef.current !== key) return;
+        setFetched({ key, products: data.products });
       })
       .catch(() => {
-        if (!cancelled) setFetched({ key, products: [] });
+        if (cancelled) return;
+        if (activeKeyRef.current !== key) return;
+        setFetched({ key, products: [] });
       });
     return () => {
       cancelled = true;

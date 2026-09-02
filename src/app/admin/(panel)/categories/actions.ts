@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { mediaRefSchema } from "@/lib/validation/media-url";
 
 export type CategoryActionState = {
   error?: string;
@@ -23,17 +24,7 @@ const categoryFormSchema = z.object({
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   image: z.preprocess(
     (value) => (value === "" || value === null ? null : value),
-    z
-      .string()
-      .max(2000)
-      .refine(
-        (value) =>
-          typeof value !== "string" ||
-          value.startsWith("/") ||
-          /^https?:\/\//i.test(value),
-        { message: "Geçerli bir görsel adresi giriniz" },
-      )
-      .nullable(),
+    mediaRefSchema.nullable(),
   ),
   active: z.boolean(),
   sortOrder: z.preprocess(

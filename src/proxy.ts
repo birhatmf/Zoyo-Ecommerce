@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, UNKNOWN_IP_LIMITS } from "@/lib/rate-limit";
 
 // İstek başına nonce üretip Content-Security-Policy uygular.
 // Next.js, bu başlıktaki nonce'u kendi inline betiklerine otomatik ekler.
@@ -9,7 +9,8 @@ export function proxy(request: NextRequest) {
   // ilgili route içinde ayrı anahtarla uygulanır)
   if (request.nextUrl.pathname.startsWith("/api/")) {
     const ip = getClientIp(request.headers);
-    const general = rateLimit(`api:${ip}`, 120, 60_000);
+    const limit = ip === "unknown" ? UNKNOWN_IP_LIMITS.apiPerMinute : 120;
+    const general = rateLimit(`api:${ip}`, limit, 60_000);
     if (!general.ok) {
       return new NextResponse(
         JSON.stringify({ error: "Çok fazla istek gönderildi." }),

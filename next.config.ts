@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
 
+// Next/Image'in uzaktan çekebileceği hostname'ler.
+// Virgülle ayrılmış env değişkeninden okunur, aksi halde yalnızca aynı origin
+// kabul edilir (remote pattern boş). Yanlışlıkla "**" gibi joker değerler
+// kabul edilmez.
+const allowedImageHosts = (process.env.NEXT_IMAGE_REMOTE_HOSTS ?? "")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter((host) => host.length > 0 && host !== "*" && host !== "**");
+
 const nextConfig: NextConfig = {
   // Güvenlik başlıkları: tüm yanıtlar için statik değerler.
   // CSP, istek başına nonce gerektirdiğinden src/proxy.ts'te ayarlanır.
@@ -30,12 +39,10 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    remotePatterns: allowedImageHosts.map((hostname) => ({
+      protocol: "https",
+      hostname,
+    })),
   },
 };
 

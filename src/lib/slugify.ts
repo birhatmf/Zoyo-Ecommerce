@@ -1,10 +1,23 @@
+// ASCII olmayan karakterler için slug normalizasyonu.
+// Türkçe harflerin yanı sıra yaygın Latince aksanlı karakterler de dahildir.
+// Kapsam bilinçli olarak küçük tutulmuştur; ürün adları çoğunlukla Türkçe
+// veya İngilizce, egzotik diller zaten İngilizce çeviri gerektirir.
 const TR_MAP: Record<string, string> = {
+  // Türkçe
   ç: "c", Ç: "c",
   ğ: "g", Ğ: "g",
   ı: "i", I: "i", İ: "i",
   ö: "o", Ö: "o",
   ş: "s", Ş: "s",
   ü: "u", Ü: "u",
+  // Latince aksanlı (örn. marka isimlerinde sık kullanılan)
+  à: "a", á: "a", â: "a", ã: "a", ä: "a", å: "a", ā: "a",
+  è: "e", é: "e", ê: "e", ë: "e", ē: "e",
+  ì: "i", í: "i", î: "i", ï: "i", ī: "i",
+  ò: "o", ó: "o", ô: "o", õ: "o", ø: "o", ō: "o",
+  ù: "u", ú: "u", û: "u", ū: "u",
+  ñ: "n", ß: "ss",
+  ý: "y", ÿ: "y",
 };
 
 export function slugify(value: string): string {

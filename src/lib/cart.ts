@@ -11,9 +11,33 @@ const STORAGE_KEY = "zoyo-cart-v1";
 const MAX_QUANTITY = 99;
 const EMPTY: CartItem[] = [];
 
+// localStorage kaydedilemediğinde UI'da gösterilecek mesaj için abone listesi.
+// Bu, sepetin sadece bellekte yaşadığını ve sayfa yenilenince kaybolacağını
+// kullanıcıya bildirmek için kullanılır.
+type StorageWarning = { reason: "quota" | "unavailable" };
+const storageWarningListeners = new Set<(w: StorageWarning | null) => void>();
+let currentWarning: StorageWarning | null = null;
+
 let snapshot: CartItem[] = EMPTY;
 let initialized = false;
 const listeners = new Set<() => void>();
+
+function setStorageWarning(w: StorageWarning | null) {
+  if (currentWarning === w) return;
+  currentWarning = w;
+  storageWarningListeners.forEach((listener) => listener(w));
+}
+
+export function useCartStorageWarning(): StorageWarning | null {
+  return useSyncExternalStore(
+    (cb) => {
+      storageWarningListeners.add(cb);
+      return () => storageWarningListeners.delete(cb);
+    },
+    () => currentWarning,
+    () => null,
+  );
+}
 
 function readStorage(): CartItem[] {
   try {
@@ -52,8 +76,18 @@ function commit(next: CartItem[]) {
   initialized = true;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // storage dolu veya erişilemez — sepet sadece bellekte yaşar
+    // Başarılı yazıldıysa uyarıyı temizle.
+    setStorageWarning(null);
+  } catch (error) {
+    // QuotaExceededError veya güvenlik kısıtlaması (private mode vb.).
+    // Sepet yalnızca bellekte yaşar; sayfa yenilenince kaybolur.
+    const reason: StorageWarning["reason"] =
+      error instanceof DOMException &&
+      (error.name === "QuotaExceededError" ||
+        error.name === "NS_ERROR_DOM_QUOTA_REACHED")
+        ? "quota"
+        : "unavailable";
+    setStorageWarning({ reason });
   }
   listeners.forEach((listener) => listener());
 }
