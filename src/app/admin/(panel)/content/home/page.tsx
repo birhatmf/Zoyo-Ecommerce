@@ -4,9 +4,10 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
-import { saveHomepageImageAction } from "@/app/admin/(panel)/content/actions";
+import { HeroInlineEditor } from "@/components/admin/hero-inline-editor";
 import { HeroSlidesManager } from "@/components/admin/hero-slides-manager";
 import { HomepageForm } from "@/components/admin/homepage-form";
+import { saveHomepageImageAction } from "@/app/admin/(panel)/content/actions";
 
 export const metadata: Metadata = { title: "Ana Sayfa İçeriği" };
 
@@ -37,39 +38,44 @@ export default async function AdminHomeContentPage() {
           Sitede görüntüle
         </Link>
       </div>
+
+      {/* Canlı hero + slider önizleme */}
       <div className="mt-6">
-        <HomepageForm
-          uploadImageAction={saveHomepageImageAction}
-          defaults={{
+        <HeroInlineEditor
+          slides={slides.map((slide) => ({
+            id: slide.id,
+            title: slide.title,
+            subtitle: slide.subtitle,
+            description: slide.description,
+            imageUrl: slide.imageUrl,
+            ctaLabel: slide.ctaLabel,
+            ctaUrl: slide.ctaUrl,
+            sortOrder: slide.sortOrder,
+            active: slide.active,
+          }))}
+          content={{
             heroTitle: content?.heroTitle ?? "",
             heroSubtitle: content?.heroSubtitle ?? "",
             heroDescription: content?.heroDescription ?? "",
-            heroImageDesktop: content?.heroImageDesktop ?? "",
-            heroImageMobile: content?.heroImageMobile ?? "",
             heroCtaLabel: content?.heroCtaLabel ?? "",
             heroCtaUrl: content?.heroCtaUrl ?? "",
             heroCtaSecondaryLabel: content?.heroCtaSecondaryLabel ?? "",
             heroCtaSecondaryUrl: content?.heroCtaSecondaryUrl ?? "",
-            heroAlignment: content?.heroAlignment ?? "left",
-            heroActive: content?.heroActive ?? true,
             storyTitle: content?.storyTitle ?? "",
             storyDescription: content?.storyDescription ?? "",
-            storyImage: content?.storyImage ?? "",
             customProductionTitle: content?.customProductionTitle ?? "",
-            customProductionDescription:
-              content?.customProductionDescription ?? "",
-            customProductionButtonLabel:
-              content?.customProductionButtonLabel ?? "",
+            customProductionDescription: content?.customProductionDescription ?? "",
+            customProductionButtonLabel: content?.customProductionButtonLabel ?? "",
           }}
         />
       </div>
 
-      {/* Hero slider slaytları */}
+      {/* Hero slider slayt yönetimi (ekle/sil/sırala/aktif) */}
       <section className="mt-6 rounded-md border border-border bg-card p-5">
-        <h2 className="text-sm font-medium">Hero Slider Slaytları</h2>
+        <h2 className="text-sm font-medium">Hero Slider Slaytları (Yönetim)</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Slayt eklendiğinde ana sayfa hero bölümü tam ekran animasyonlu slider&apos;a
-          dönüşür. Slayt yoksa yukarıdaki klasik hero gösterilir.
+          Slayt ekleme, silme, sıralama ve aktif/pasif yönetimi buradan yapılır.
+          Metinleri yukarıdaki canlı önizlemeden düzenleyebilirsiniz.
         </p>
         <div className="mt-4">
           <HeroSlidesManager
@@ -84,6 +90,40 @@ export default async function AdminHomeContentPage() {
               sortOrder: slide.sortOrder,
               active: slide.active,
             }))}
+          />
+        </div>
+      </section>
+
+      {/* Klasik hero + hikâye + CTA detay formu (görsel yükleme dahil) */}
+      <section className="mt-6">
+        <h2 className="font-heading text-lg font-medium">Detay Düzenleme</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Görsel yükleme, hizalama, görünürlük ve diğer tüm alanlar buradan yönetilir.
+        </p>
+        <div className="mt-4">
+          <HomepageForm
+            uploadImageAction={saveHomepageImageAction}
+            defaults={{
+              heroTitle: content?.heroTitle ?? "",
+              heroSubtitle: content?.heroSubtitle ?? "",
+              heroDescription: content?.heroDescription ?? "",
+              heroImageDesktop: content?.heroImageDesktop ?? "",
+              heroImageMobile: content?.heroImageMobile ?? "",
+              heroCtaLabel: content?.heroCtaLabel ?? "",
+              heroCtaUrl: content?.heroCtaUrl ?? "",
+              heroCtaSecondaryLabel: content?.heroCtaSecondaryLabel ?? "",
+              heroCtaSecondaryUrl: content?.heroCtaSecondaryUrl ?? "",
+              heroAlignment: content?.heroAlignment ?? "left",
+              heroActive: content?.heroActive ?? true,
+              storyTitle: content?.storyTitle ?? "",
+              storyDescription: content?.storyDescription ?? "",
+              storyImage: content?.storyImage ?? "",
+              customProductionTitle: content?.customProductionTitle ?? "",
+              customProductionDescription:
+                content?.customProductionDescription ?? "",
+              customProductionButtonLabel:
+                content?.customProductionButtonLabel ?? "",
+            }}
           />
         </div>
       </section>

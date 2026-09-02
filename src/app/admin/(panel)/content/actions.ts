@@ -497,3 +497,80 @@ export async function deleteCmsPageAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/content/pages");
   redirect("/admin/content/pages");
 }
+
+// ---------- Inline düzenleme (hero + slider) ----------
+
+// Klasik hero (HomepageContent) alanları için tek-alan plain action.
+const homepageFieldKeys = [
+  "heroTitle",
+  "heroSubtitle",
+  "heroDescription",
+  "heroCtaLabel",
+  "heroCtaUrl",
+  "heroCtaSecondaryLabel",
+  "heroCtaSecondaryUrl",
+  "storyTitle",
+  "storyDescription",
+  "customProductionTitle",
+  "customProductionDescription",
+  "customProductionButtonLabel",
+] as const;
+
+const inlineHomepageSchema = z.object({
+  key: z.enum(homepageFieldKeys),
+  value: z.string().max(2000),
+});
+
+export async function saveHomepageFieldAction(formData: FormData): Promise<void> {
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
+
+  const parsed = inlineHomepageSchema.safeParse({
+    key: formData.get("key"),
+    value: formData.get("value") ?? "",
+  });
+  if (!parsed.success) return;
+
+  await prisma.homepageContent.upsert({
+    where: { id: "homepage" },
+    update: { [parsed.data.key]: parsed.data.value },
+    create: { id: "homepage", [parsed.data.key]: parsed.data.value },
+  });
+
+  revalidatePath("/");
+}
+
+// Hero slider alanları için tek-alan plain action.
+const heroSlideFieldKeys = [
+  "title",
+  "subtitle",
+  "description",
+  "ctaLabel",
+  "ctaUrl",
+] as const;
+
+const inlineSlideSchema = z.object({
+  id: z.uuid(),
+  key: z.enum(heroSlideFieldKeys),
+  value: z.string().max(2000),
+});
+
+export async function saveHeroSlideFieldAction(formData: FormData): Promise<void> {
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
+
+  const parsed = inlineSlideSchema.safeParse({
+    id: formData.get("id"),
+    key: formData.get("key"),
+    value: formData.get("value") ?? "",
+  });
+  if (!parsed.success) return;
+
+  await prisma.heroSlide.update({
+    where: { id: parsed.data.id },
+    data: { [parsed.data.key]: parsed.data.value || null },
+  });
+
+  revalidatePath("/admin/content/home");
+  revalidatePath("/");
+}
