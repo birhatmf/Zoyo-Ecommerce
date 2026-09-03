@@ -107,7 +107,19 @@ export default async function AdminProductionPage({ searchParams }: ProductionPa
           </p>
         )}
         {orders.map((order) => (
-          <ProductionOrderCard key={order.id} order={order} />
+          <ProductionOrderCard
+            key={order.id}
+            order={{
+              id: order.id,
+              orderNumber: order.orderNumber,
+              customerFirstName: order.customerFirstName,
+              customerLastName: order.customerLastName,
+              productionStage: order.productionStage,
+              upholsteryDone: order.upholsteryDone,
+              productionNote: order.productionNote,
+              total: order.total.toString(),
+            }}
+          />
         ))}
       </div>
     </div>

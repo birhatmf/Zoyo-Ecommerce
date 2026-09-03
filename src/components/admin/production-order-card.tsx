@@ -16,6 +16,7 @@ import {
   productionProgress,
   stageRequiresUpholstery,
 } from "@/lib/order-production";
+import { formatPrice } from "@/lib/format";
 import type { ProductionStage } from "@/generated/prisma/enums";
 
 export type ProductionOrderItem = {
@@ -26,7 +27,7 @@ export type ProductionOrderItem = {
   productionStage: ProductionStage | null;
   upholsteryDone: boolean;
   productionNote: string | null;
-  total: { toString(): string };
+  total: string;
 };
 
 const inputClass =
@@ -61,7 +62,7 @@ export function ProductionOrderCard({ order }: { order: ProductionOrderItem }) {
             {order.customerFirstName} {order.customerLastName}
           </p>
           <p className="text-xs text-muted-foreground">
-            {order.orderNumber} · {order.total.toString()}
+            {order.orderNumber} · {formatPrice(order.total)}
           </p>
         </div>
         {!stage && (
