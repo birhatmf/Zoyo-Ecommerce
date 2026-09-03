@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const baseLinks = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Siparişler" },
+  { href: "/admin/orders/production", label: "Üretim Takibi" },
   { href: "/admin/products", label: "Ürünler" },
   { href: "/admin/categories", label: "Kategoriler" },
   { href: "/admin/content", label: "İçerik" },

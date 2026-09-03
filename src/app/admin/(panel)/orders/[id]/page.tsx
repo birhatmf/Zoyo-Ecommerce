@@ -15,6 +15,7 @@ import {
   ORDER_STATUS_LABELS,
 } from "@/lib/order";
 import { allowedNextStatuses } from "@/lib/order-transitions";
+import { PRODUCTION_STAGE_LABELS } from "@/lib/order-production";
 import { formatPrice, whatsappUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { OrderNotes } from "@/components/admin/order-notes";
@@ -422,6 +423,34 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
               Kaydet
             </button>
           </form>
+
+          {/* Üretim durumu özeti */}
+          <div className="mt-4 rounded-md border border-border bg-card p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium">Üretim Takibi</h2>
+              <Link
+                href="/admin/orders/production"
+                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Panoya git →
+              </Link>
+            </div>
+            <p className="mt-3 text-sm">
+              {order.productionStage
+                ? PRODUCTION_STAGE_LABELS[order.productionStage]
+                : "Üretime alınmadı"}
+            </p>
+            {order.productionStage === "UPHOLSTERY" && (
+              <p className={`mt-1 text-xs ${order.upholsteryDone ? "text-emerald-600" : "text-muted-foreground"}`}>
+                {order.upholsteryDone
+                  ? "✓ Minder / döşeme tamamlandı"
+                  : "Minder / döşeme bekliyor"}
+              </p>
+            )}
+            {order.productionNote && (
+              <p className="mt-2 text-xs text-muted-foreground">📝 {order.productionNote}</p>
+            )}
+          </div>
         </aside>
       </div>
     </div>

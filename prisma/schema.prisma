@@ -43,6 +43,17 @@ enum InvoiceType {
   CORPORATE
 }
 
+// Üretim hattı aşaması (order lifecycle — atölye takibi)
+enum ProductionStage {
+  QUEUED      // Sıraya alındı
+  CUTTING     // Kesimi yapıldı
+  ASSEMBLY    // Montaj aşamasında
+  PAINTING    // Boya aşamasında
+  UPHOLSTERY  // Minder/döşeme aşamasında
+  READY       // Sevke hazır
+  SHIPPED     // Sevk edildi
+}
+
 // ---------- Auth ----------
 
 model AdminUser {
@@ -165,10 +176,19 @@ model Order {
   customerNote     String?
   adminNote        String?
   acceptedTerms     Json?
+
   // Yasal metin versiyonu snapshot'ı: hangi CMS sayfa versiyonu (updatedAt)
   // kabul edildi? KVKK uyumu için müşteri Kabul anında geçerli metnin izini
   // tutmamız gerekir. Versiyon yoksa null = henüz snapshot alınmadı.
   acceptedLegal    Json?
+
+  // Üretim hattı takibi (production lifecycle)
+  productionStage ProductionStage?
+  // Minder/döşeme yapıldı mı? (bazı ürünlerde opsiyonel — checkbox)
+  upholsteryDone  Boolean          @default(false)
+  // Üretim/sevk notu (iç not; örn. kargo no)
+  productionNote  String?
+
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
