@@ -13,7 +13,7 @@ import {
   ORDER_STATUSES,
   ORDER_STATUS_BADGE_CLASSES,
   ORDER_STATUS_LABELS,
-} from "@/lib/order";
+} from "@/lib/order-status";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 export const metadata = { title: "Dashboard" };

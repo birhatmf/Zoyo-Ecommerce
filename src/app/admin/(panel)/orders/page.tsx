@@ -3,13 +3,13 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import type { InvoiceType, OrderStatus } from "@/generated/prisma/client";
-import { X } from "lucide-react";
+import { ArrowUpRight, MessageCircle, X } from "lucide-react";
+import { whatsappUrl } from "@/lib/format";
 import {
-  formatDate,
   ORDER_STATUSES,
-  ORDER_STATUS_BADGE_CLASSES,
   ORDER_STATUS_LABELS,
-} from "@/lib/order";
+} from "@/lib/order-status";
+import { OrderStatusInlineSelect } from "@/components/admin/order-status-inline-select";
 
 export const metadata: Metadata = {
   title: "Siparişler",
@@ -371,13 +371,13 @@ export default async function AdminOrdersPage({ searchParams }: OrdersPageProps)
               <th className="hidden px-4 py-3 font-medium md:table-cell">Telefon</th>
               <th className="px-4 py-3 font-medium">Toplam</th>
               <th className="px-4 py-3 font-medium">Durum</th>
-              <th className="hidden px-4 py-3 font-medium lg:table-cell">Tarih</th>
+              <th className="hidden px-4 py-3 font-medium lg:table-cell">Aksiyon</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   {hasActiveFilters
                     ? "Bu filtrelere uyan sipariş bulunamadı."
                     : "Henüz sipariş yok."}
@@ -409,12 +409,33 @@ export default async function AdminOrdersPage({ searchParams }: OrdersPageProps)
                   ₺{Number(order.total).toLocaleString("tr-TR")}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs ${ORDER_STATUS_BADGE_CLASSES[order.status]}`}>
-                    {ORDER_STATUS_LABELS[order.status]}
-                  </span>
+                  <OrderStatusInlineSelect
+                    orderId={order.id}
+                    status={order.status}
+                  />
                 </td>
-                <td className="hidden px-4 py-3 whitespace-nowrap text-muted-foreground lg:table-cell">
-                  {formatDate(order.createdAt)}
+                <td className="hidden px-4 py-3 text-right lg:table-cell">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <a
+                      href={whatsappUrl(
+                        order.phoneNormalized,
+                        `Merhaba,\n\n${order.orderNumber} numaralı siparişiniz hakkında iletişime geçmek istiyoruz.`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="WhatsApp'tan müşteriye yaz"
+                      className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/10 hover:text-accent"
+                    >
+                      <MessageCircle className="size-4" />
+                    </a>
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      aria-label="Sipariş detayı"
+                      className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <ArrowUpRight className="size-4" />
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

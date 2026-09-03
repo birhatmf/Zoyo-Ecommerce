@@ -4,20 +4,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 
-import {
-  updateOrderAction,
-  updateOrderContactAction,
-} from "@/app/admin/(panel)/orders/actions";
+import { updateOrderContactAction } from "@/app/admin/(panel)/orders/actions";
+import { getOrderNoteTemplates } from "@/lib/order";
 import {
   formatDate,
-  getOrderNoteTemplates,
   ORDER_STATUS_BADGE_CLASSES,
   ORDER_STATUS_LABELS,
-} from "@/lib/order";
-import { allowedNextStatuses } from "@/lib/order-transitions";
+} from "@/lib/order-status";
 import { PRODUCTION_STAGE_LABELS } from "@/lib/order-production";
 import { formatPrice, whatsappUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { OrderManagePanel } from "@/components/admin/order-manage-panel";
 import { OrderNotes } from "@/components/admin/order-notes";
 import { PrintButton } from "@/components/admin/print-button";
 
@@ -58,6 +55,13 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
   });
   if (!order) notFound();
 
+  // Sipariş geçmişi: bu siparişe ait audit kayıtları (son 30)
+  const orderHistory = await prisma.auditLog.findMany({
+    where: { entityType: "Order", entityId: id },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+  });
+
   const noteTemplates = await getOrderNoteTemplates();
 
   const waLink = whatsappUrl(
@@ -69,6 +73,11 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
     (sum, item) => sum + Number(item.totalPrice),
     0,
   );
+
+  // Tutarlılık kontrolü: items toplamı ile kayıtlı tutar uyuşmuyorsa uyar (madde 6)
+  const subtotalRounded = Number(subtotal.toFixed(2));
+  const totalRounded = Number(order.total);
+  const totalMismatch = Math.abs(subtotalRounded - totalRounded) > 0.01;
 
   return (
     <div>
@@ -94,6 +103,19 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
           <PrintButton />
         </div>
       </div>
+
+      {/* Tutarlılık uyarısı */}
+      {totalMismatch && (
+        <p
+          role="alert"
+          className="mt-4 rounded-md border border-amber-300/40 bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          ⚠ Tutar tutarsızlığı: Sipariş ürünleri toplamı (
+          {formatPrice(subtotalRounded)}) ile kayıtlı genel toplam (
+          {formatPrice(totalRounded)}) eşleşmiyor. Fiyatlar sipariş sonrası
+          değişmiş olabilir — müşteriyle teyit edin.
+        </p>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-6">
@@ -383,46 +405,41 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
 
           {/* C. Yönetici Maddeleri & Notlar */}
           <OrderNotes orderId={order.id} notes={order.notes} templates={noteTemplates} />
+
+          {/* D. Sipariş Geçmişi (audit) */}
+          <section className="rounded-md border border-border bg-card p-5">
+            <h2 className="text-sm font-medium">Sipariş Geçmişi</h2>
+            {orderHistory.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Henüz kayıt yok.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2.5">
+                {orderHistory.map((entry) => (
+                  <li key={entry.id} className="flex items-start justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="leading-snug">{entry.summary}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {entry.actorEmail ?? "Sistem"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {formatDate(entry.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
 
         <aside className="print:hidden">
-          <form action={updateOrderAction} className="rounded-md border border-border bg-card p-5 lg:sticky lg:top-24">
-            <input type="hidden" name="orderId" value={order.id} />
-            <h2 className="text-sm font-medium">Sipariş Yönetimi</h2>
-            <label className="mt-4 block">
-              <span className="mb-1.5 block text-xs text-muted-foreground">Durum</span>
-              <select
-                name="status"
-                defaultValue={order.status}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
-              >
-                <option value={order.status} disabled>
-                  {ORDER_STATUS_LABELS[order.status]} (mevcut)
-                </option>
-                {allowedNextStatuses(order.status).map((s) => (
-                  <option key={s} value={s}>
-                    {ORDER_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="mt-4 block">
-              <span className="mb-1.5 block text-xs text-muted-foreground">Admin Notu</span>
-              <textarea
-                name="adminNote"
-                rows={4}
-                defaultValue={order.adminNote ?? ""}
-                placeholder="Dahili not…"
-                className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
-              />
-            </label>
-            <button
-              type="submit"
-              className="mt-4 h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-            >
-              Kaydet
-            </button>
-          </form>
+          {/* Durum + iptal + not (ayrı formlar) */}
+          <OrderManagePanel
+            orderId={order.id}
+            currentStatus={order.status}
+            adminNote={order.adminNote}
+          />
 
           {/* Üretim durumu özeti */}
           <div className="mt-4 rounded-md border border-border bg-card p-5">

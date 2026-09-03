@@ -59,13 +59,16 @@ export async function updateOrderContactAction(formData: FormData): Promise<void
   });
   if (!parsed.success) return;
 
-  const { orderId, postalCode, email, ...rest } = parsed.data;
+  const { orderId, postalCode, email, phone, ...rest } = parsed.data;
 
+  // Hem phone hem phoneNormalized aynı normalize değerle güncellenir —
+  // aksi halde iki alan birbirinden kopar (tutarsızlık).
   await prisma.order.update({
     where: { id: orderId },
     data: {
       ...rest,
-      phoneNormalized: rest.phone,
+      phone,
+      phoneNormalized: phone,
       email: email || null,
       postalCode: postalCode || null,
       lastEditedById: admin.id,
@@ -109,6 +112,11 @@ export async function updateOrderAction(formData: FormData): Promise<void> {
     return;
   }
 
+  // CANCELLED'a geçerken iptal nedeni zorunlu — adminNote içine yazılır.
+  if (status === "CANCELLED" && !adminNote) {
+    return;
+  }
+
   await prisma.order.update({
     where: { id: orderId },
     data: {
@@ -132,6 +140,130 @@ export async function updateOrderAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/admin/orders");
+}
+
+// Liste satırından hızlı durum değişimi — adminNote'a dokunmaz.
+export async function quickStatusUpdateAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
+
+  const parsed = z
+    .object({
+      orderId: z.string().uuid(),
+      status: orderStatusUpdateSchema.shape.status,
+    })
+    .safeParse({
+      orderId: formData.get("orderId"),
+      status: formData.get("status"),
+    });
+  if (!parsed.success) return;
+
+  const { orderId, status } = parsed.data;
+
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { orderNumber: true, status: true },
+  });
+  if (!existing) return;
+  if (!canTransition(existing.status, status)) return;
+  // Listedeki hızlı değişimde iptal neden detay sayfasından istenir.
+  if (status === "CANCELLED") return;
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status, lastEditedById: admin.id, lastEditedAt: new Date() },
+  });
+  await recordAudit({
+    actor: admin,
+    action: "STATUS_CHANGE",
+    entityType: "Order",
+    entityId: orderId,
+    summary: `${existing.orderNumber} durumu ${existing.status} → ${status} (hızlı)`,
+    metadata: { from: existing.status, to: status, quick: true },
+  });
+  revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/admin/orders");
+}
+
+// İptal: nedeni adminNote'a "İptal nedeni: ..." olarak yazar.
+export async function cancelOrderAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
+
+  const parsed = z
+    .object({
+      orderId: z.string().uuid(),
+      reason: z.string().trim().min(3, "İptal nedeni giriniz").max(1000),
+    })
+    .safeParse({
+      orderId: formData.get("orderId"),
+      reason: formData.get("reason"),
+    });
+  if (!parsed.success) return;
+
+  const { orderId, reason } = parsed.data;
+
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { orderNumber: true, status: true, adminNote: true },
+  });
+  if (!existing) return;
+  if (!canTransition(existing.status, "CANCELLED")) return;
+
+  const note = `İptal nedeni: ${reason}`;
+  const adminNote = existing.adminNote
+    ? `${existing.adminNote}\n${note}`
+    : note;
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "CANCELLED", adminNote, lastEditedById: admin.id, lastEditedAt: new Date() },
+  });
+  await recordAudit({
+    actor: admin,
+    action: "STATUS_CHANGE",
+    entityType: "Order",
+    entityId: orderId,
+    summary: `${existing.orderNumber} iptal edildi: ${reason}`,
+    metadata: { from: existing.status, to: "CANCELLED", reason },
+  });
+  revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/admin/orders");
+}
+
+// Yalnızca admin notunu kaydeder (durumdan bağımsız).
+export async function updateOrderAdminNoteAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
+
+  const parsed = z
+    .object({
+      orderId: z.string().uuid(),
+      adminNote: z.string().trim().max(2000),
+    })
+    .safeParse({
+      orderId: formData.get("orderId"),
+      adminNote: formData.get("adminNote") ?? "",
+    });
+  if (!parsed.success) return;
+
+  await prisma.order.update({
+    where: { id: parsed.data.orderId },
+    data: {
+      adminNote: parsed.data.adminNote || null,
+      lastEditedById: admin.id,
+      lastEditedAt: new Date(),
+    },
+  });
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "Order",
+    entityId: parsed.data.orderId,
+    summary: "Admin notu güncellendi",
+  });
+  revalidatePath(`/admin/orders/${parsed.data.orderId}`);
   revalidatePath("/admin/orders");
 }
 
