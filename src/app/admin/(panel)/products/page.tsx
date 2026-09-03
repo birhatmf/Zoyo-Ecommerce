@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { formatPrice } from "@/lib/format";
+import { ProductTable } from "@/components/admin/product-table";
 
 export const metadata: Metadata = { title: "Ürünler" };
 
 const PAGE_SIZE = 20;
 
 const STATUS_LABELS = { DRAFT: "Taslak", ACTIVE: "Yayında", INACTIVE: "Pasif" } as const;
-const STATUS_CLASSES = {
-  DRAFT: "border-border text-muted-foreground",
-  ACTIVE: "border-transparent bg-primary/10 text-primary",
-  INACTIVE: "border-destructive/20 bg-destructive/5 text-destructive",
-} as const;
 
 type ProductsPageProps = {
   searchParams: Promise<{
@@ -168,63 +163,20 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
         {totalPages > 1 ? ` — sayfa ${page}/${totalPages}` : ""}
       </p>
 
-      <div className="mt-3 overflow-x-auto rounded-md border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs tracking-wide text-muted-foreground uppercase">
-              <th className="px-4 py-3 font-medium">Görsel</th>
-              <th className="px-4 py-3 font-medium">Ürün</th>
-              <th className="hidden px-4 py-3 font-medium md:table-cell">Kod</th>
-              <th className="hidden px-4 py-3 font-medium lg:table-cell">Kategori</th>
-              <th className="px-4 py-3 font-medium">Fiyat</th>
-              <th className="px-4 py-3 font-medium">Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  Kayıt bulunamadı.
-                </td>
-              </tr>
-            )}
-            {products.map((product) => (
-              <tr key={product.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
-                <td className="px-4 py-2.5">
-                  {product.images[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.images[0].url}
-                      alt=""
-                      className="size-10 rounded-sm object-cover"
-                    />
-                  ) : (
-                    <span className="block size-10 rounded-sm bg-muted" />
-                  )}
-                </td>
-                <td className="px-4 py-2.5">
-                  <Link
-                    href={`/admin/products/${product.id}`}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {product.name}
-                    {product.featured && (
-                      <span title="Öne çıkan" className="ml-1.5 text-xs text-accent">★</span>
-                    )}
-                  </Link>
-                </td>
-                <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{product.productCode}</td>
-                <td className="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{product.category?.name ?? "—"}</td>
-                <td className="px-4 py-2.5 whitespace-nowrap">{formatPrice(product.price)}</td>
-                <td className="px-4 py-2.5">
-                  <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs ${STATUS_CLASSES[product.status]}`}>
-                    {STATUS_LABELS[product.status]}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-3">
+        <ProductTable
+          products={products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            productCode: p.productCode,
+            featured: p.featured,
+            price: p.price,
+            status: p.status,
+            categoryName: p.category?.name ?? null,
+            coverUrl: p.images[0]?.url ?? null,
+          }))}
+          categories={categories}
+        />
       </div>
 
       {totalPages > 1 && (

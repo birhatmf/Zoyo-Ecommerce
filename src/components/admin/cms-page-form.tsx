@@ -7,6 +7,7 @@ import {
   saveCmsPageAction,
   type CmsActionState,
 } from "@/app/admin/(panel)/content/actions";
+import { RichTextEditor, syncRichTextEditor } from "@/components/admin/rich-text-editor";
 import { slugify } from "@/lib/slugify";
 
 export type CmsPageFormDefaults = {
@@ -34,7 +35,11 @@ export function CmsPageForm({ defaults = {} }: { defaults?: CmsPageFormDefaults 
   const fieldError = (name: string) => state?.fieldErrors?.[name];
 
   return (
-    <form action={formAction} className="max-w-3xl">
+    <form
+      action={formAction}
+      className="max-w-3xl"
+      onSubmit={() => syncRichTextEditor("content")}
+    >
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       {state?.error && (
@@ -89,16 +94,14 @@ export function CmsPageForm({ defaults = {} }: { defaults?: CmsPageFormDefaults 
         </label>
         <div className="sm:col-span-2">
           <span className="mb-1.5 block text-sm text-muted-foreground">İçerik</span>
-          <textarea
+          <RichTextEditor
             name="content"
-            rows={16}
-            defaultValue={defaults.content}
-            placeholder="<p>Paragraf…</p><ul><li>Liste öğesi</li></ul>"
-            className={`${inputClass} resize-y font-mono text-xs leading-relaxed`}
+            defaultValue={defaults.content ?? ""}
+            placeholder="Paragraf yazın veya araç çubuğundan biçimlendirin…"
           />
           <span className="mt-1 block text-xs text-muted-foreground/80">
-            Temel HTML etiketleri kullanılabilir: p, strong, em, h2-h4, ul, ol, li, a.
-            Güvenlik için diğer etiketler render sırasında temizlenir.
+            Kalın, italik, başlık, liste ve link desteklenir. Güvenlik için
+            kayıt sırasında içerik temizlenir (sanitize-html).
           </span>
         </div>
         <div className="sm:col-span-2">

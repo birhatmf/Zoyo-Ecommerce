@@ -216,6 +216,57 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
 
 // ---------- Ürün görselleri ----------
 
+const bulkSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+  action: z.enum(["activate", "deactivate", "set-category"]),
+  categoryId: z.string().uuid().optional(),
+});
+
+// Toplu ürün işlemleri: yayınla / pasife al / kategori ata.
+export async function bulkProductAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("EDITOR");
+  if (!admin) return;
+
+  const parsed = bulkSchema.safeParse({
+    ids: formData.getAll("ids"),
+    action: formData.get("bulkAction"),
+    categoryId: formData.get("categoryId") || undefined,
+  });
+  if (!parsed.success) return;
+
+  const { ids, action, categoryId } = parsed.data;
+
+  if (action === "activate") {
+    await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { status: "ACTIVE" },
+    });
+  } else if (action === "deactivate") {
+    await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { status: "INACTIVE" },
+    });
+  } else if (action === "set-category") {
+    if (!categoryId) return;
+    await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { categoryId },
+    });
+  }
+
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "Product",
+    entityId: null,
+    summary: `Toplu işlem: ${action} (${ids.length} ürün)`,
+  });
+  revalidatePath("/admin/products");
+  revalidatePath("/urunler");
+}
+
+// ---------- Ürün görselleri ----------
+
 const imageActionSchema = z.object({
   productId: z.string().uuid(),
   imageId: z.string().uuid(),

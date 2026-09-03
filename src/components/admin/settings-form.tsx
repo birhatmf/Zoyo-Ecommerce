@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   saveSettingsAction,
   type SettingsActionState,
 } from "@/app/admin/(panel)/settings/actions";
+import { MediaPicker } from "@/components/admin/media-picker";
 import { MediaUploadButton } from "@/components/admin/media-upload-button";
 
 export type SettingsField = {
@@ -89,28 +90,62 @@ export function SettingsForm({
         </button>
       </form>
 
-      {/* Görsel alanları: mevcut değer + anında kaydeden yükleme butonu */}
+      {/* Görsel alanları: mevcut değer + anında kaydeden yükleme + kütüphane seçimi */}
       {fields
         .filter((field) => field.type === "media")
         .map((field) => (
-          <div key={field.name} className="mt-4">
-            <span className="mb-1.5 block text-sm text-muted-foreground">{field.label}</span>
-            <div className="flex items-center gap-2">
-              <div className="h-9 min-w-0 flex-1 truncate rounded-md border border-input bg-muted/50 px-3 text-sm leading-9 text-muted-foreground">
-                {defaults[field.name] || "Henüz görsel yüklenmemiş"}
-              </div>
-              {uploadAction && (
-                <MediaUploadButton
-                  action={uploadAction}
-                  hiddenFields={{ key: field.name }}
-                />
-              )}
-            </div>
-            {field.hint && (
-              <span className="mt-1 block text-xs text-muted-foreground/80">{field.hint}</span>
-            )}
-          </div>
+          <MediaField
+            key={field.name}
+            field={field}
+            currentValue={defaults[field.name] ?? ""}
+            uploadAction={uploadAction}
+          />
         ))}
+    </div>
+  );
+}
+
+function MediaField({
+  field,
+  currentValue,
+  uploadAction,
+}: {
+  field: SettingsField;
+  currentValue: string;
+  uploadAction?: (formData: FormData) => Promise<void>;
+}) {
+  const [value, setValue] = useState(currentValue);
+
+  return (
+    <div className="mt-4">
+      <span className="mb-1.5 block text-sm text-muted-foreground">{field.label}</span>
+      <div className="flex items-center gap-2">
+        <div className="h-9 min-w-0 flex-1 truncate rounded-md border border-input bg-muted/50 px-3 text-sm leading-9 text-muted-foreground">
+          {value || "Henüz görsel yüklenmemiş"}
+        </div>
+        {uploadAction && (
+          <MediaUploadButton
+            action={uploadAction}
+            hiddenFields={{ key: field.name }}
+          />
+        )}
+        <MediaPicker
+          onSelect={async (url) => {
+            // Seçilen URL'i anında kaydet (saveSettingInlineAction mantığı).
+            const { saveSettingInlineAction } = await import(
+              "@/app/admin/(panel)/settings/actions"
+            );
+            const fd = new FormData();
+            fd.set("key", field.name);
+            fd.set("value", url);
+            await saveSettingInlineAction(fd);
+            setValue(url);
+          }}
+        />
+      </div>
+      {field.hint && (
+        <span className="mt-1 block text-xs text-muted-foreground/80">{field.hint}</span>
+      )}
     </div>
   );
 }
