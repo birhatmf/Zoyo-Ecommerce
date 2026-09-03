@@ -49,43 +49,31 @@ export function FooterInlineEditor({
 
       <footer className="bg-primary text-primary-foreground">
         <div className="grid gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-          {/* Marka / açıklama */}
+          {/* Marka / açıklama — Ayarlar → Firma & Marka'da yönetilir (salt okunur önizleme) */}
           <div>
-            <InlineText
-              action={saveSettingInlineAction}
-              fieldName="key"
-              value={siteShortName}
-              hiddenFields={{ key: "siteShortName" }}
-              valueField="value"
-              className="font-heading text-lg font-medium tracking-[0.18em] uppercase"
-            />
-            <InlineText
-              action={saveSettingInlineAction}
-              fieldName="key"
-              value={settings.siteDescription ?? ""}
-              hiddenFields={{ key: "siteDescription" }}
-              valueField="value"
-              className="mt-4 block max-w-xs text-sm leading-relaxed text-primary-foreground/70"
-              multiline
-            />
+            <div className="font-heading text-lg font-medium tracking-[0.18em] uppercase">
+              {siteShortName || "Zoyo"}
+            </div>
+            {settings.siteDescription && (
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/70">
+                {settings.siteDescription}
+              </p>
+            )}
             {settings.instagram || settings.facebook || settings.youtube ? (
               <div className="mt-6 flex items-center gap-5">
                 {socials.map(
                   ({ key }) =>
                     settings[key] && (
-                      <InlineText
-                        key={key}
-                        action={saveSettingInlineAction}
-                        fieldName="key"
-                        value={settings[key]}
-                        hiddenFields={{ key }}
-                        valueField="value"
-                        className="text-sm text-primary-foreground/70"
-                      />
+                      <span key={key} className="text-sm text-primary-foreground/70">
+                        {settings[key]}
+                      </span>
                     ),
                 )}
               </div>
             ) : null}
+            <p className="mt-4 text-[11px] leading-snug text-primary-foreground/50">
+              Marka adı, açıklama ve sosyal medya: Ayarlar → Firma &amp; Marka / İletişim
+            </p>
           </div>
 
           {/* Link grupları */}
@@ -123,7 +111,7 @@ export function FooterInlineEditor({
             </div>
           )}
 
-          {/* İletişim */}
+          {/* İletişim — Ayarlar → İletişim'de yönetilir (salt okunur önizleme) */}
           <div>
             <InlineText
               action={saveStorefrontTextInlineAction}
@@ -137,72 +125,34 @@ export function FooterInlineEditor({
               {settings.address && (
                 <li className="flex items-start gap-2.5">
                   <MapPin className="mt-0.5 size-4 shrink-0" />
-                  <InlineText
-                    action={saveSettingInlineAction}
-                    fieldName="key"
-                    value={settings.address}
-                    hiddenFields={{ key: "address" }}
-                    valueField="value"
-                    className=""
-                    multiline
-                  />
+                  <span className="whitespace-pre-line">{settings.address}</span>
                 </li>
               )}
               {settings.phone && (
                 <li className="flex items-center gap-2.5">
                   <Phone className="size-4 shrink-0" />
-                  <InlineText
-                    action={saveSettingInlineAction}
-                    fieldName="key"
-                    value={settings.phone}
-                    hiddenFields={{ key: "phone" }}
-                    valueField="value"
-                    className=""
-                  />
+                  <span>{settings.phone}</span>
                 </li>
               )}
               {settings.whatsapp && (
                 <li className="flex items-center gap-2.5">
                   <MessageCircle className="size-4 shrink-0" />
-                  <span className="flex items-center gap-1">
-                    WhatsApp:
-                    <InlineText
-                      action={saveSettingInlineAction}
-                      fieldName="key"
-                      value={settings.whatsapp}
-                      hiddenFields={{ key: "whatsapp" }}
-                      valueField="value"
-                      className=""
-                    />
-                  </span>
+                  <span>WhatsApp: {settings.whatsapp}</span>
                 </li>
               )}
               {settings.email && (
                 <li className="flex items-center gap-2.5">
                   <Mail className="size-4 shrink-0" />
-                  <InlineText
-                    action={saveSettingInlineAction}
-                    fieldName="key"
-                    value={settings.email}
-                    hiddenFields={{ key: "email" }}
-                    valueField="value"
-                    className=""
-                  />
+                  <span>{settings.email}</span>
                 </li>
               )}
               {settings.workingHours && (
-                <li className="text-primary-foreground/60">
-                  <InlineText
-                    action={saveSettingInlineAction}
-                    fieldName="key"
-                    value={settings.workingHours}
-                    hiddenFields={{ key: "workingHours" }}
-                    valueField="value"
-                    className=""
-                  />
-                </li>
+                <li className="text-primary-foreground/60">{settings.workingHours}</li>
               )}
             </ul>
+            <p className="mt-4 text-[11px] leading-snug text-primary-foreground/50">
+              Adres, telefon ve e-posta: Ayarlar → İletişim
+            </p>
           </div>
         </div>
 

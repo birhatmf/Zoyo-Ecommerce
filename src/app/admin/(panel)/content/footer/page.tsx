@@ -80,10 +80,13 @@ export default async function AdminFooterContentPage() {
             <div className="mt-4 space-y-2">
               {group.links.map((link) => (
                 <div key={link.id} className="flex flex-wrap items-center gap-2">
+                  <span className="w-44 shrink-0 truncate text-sm font-medium" title={link.label}>
+                    {link.label}
+                  </span>
                   <form action={saveFooterLinkAction} className="flex flex-1 flex-wrap items-center gap-2">
                     <input type="hidden" name="groupId" value={group.id} />
                     <input type="hidden" name="linkId" value={link.id} />
-                    <input name="label" defaultValue={link.label} aria-label="Etiket" className={`${inputClass} w-44`} />
+                    <input type="hidden" name="label" value={link.label} />
                     <input name="url" defaultValue={link.url} aria-label="URL" className={`${inputClass} min-w-40 flex-1`} />
                     <input
                       name="sortOrder"

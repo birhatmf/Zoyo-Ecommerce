@@ -6,6 +6,11 @@ import { getStorefrontTexts, STOREFRONT_TEXT_DEFS } from "@/lib/storefront-text"
 
 export const metadata: Metadata = { title: "Storefront Metinleri" };
 
+// Navbar ve footer metinleri kendi sayfalarında canlı önizlemeyle düzenlendiği
+// için burada tekrar edilmez (tek kaynak ilkesi). Yalnızca inline editor'ü
+// olmayan genel/checkout/sepet metinleri bu sayfadan yönetilir.
+const TEXT_GROUPS = ["homepage", "cart", "checkout", "orderSuccess"] as const;
+
 export default async function AdminStorefrontTextsPage() {
   const texts = await getStorefrontTexts();
 
@@ -19,21 +24,12 @@ export default async function AdminStorefrontTextsPage() {
       </Link>
       <h1 className="mt-1 font-heading text-xl font-medium">Storefront Metinleri</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Müşteriye görünen sabit metinleri (footer, navbar, checkout, boş durumlar,
-        CTA&apos;lar) buradan düzenleyin. Tasarım tokenları (renk/font) burada değildir.
+        Müşteriye görünen sabit metinleri buradan düzenleyin. Navbar ve footer
+        metinleri ilgili sayfaların canlı önizlemesinden düzenlenir.
       </p>
 
       <div className="mt-6 space-y-8">
-        {(
-          [
-            "navbar",
-            "footer",
-            "homepage",
-            "cart",
-            "checkout",
-            "orderSuccess",
-          ] as const
-        ).map((group) => {
+        {TEXT_GROUPS.map((group) => {
           const defs = STOREFRONT_TEXT_DEFS.filter((d) => d.group === group);
           if (defs.length === 0) return null;
           return (
@@ -60,13 +56,10 @@ export default async function AdminStorefrontTextsPage() {
 
 function groupLabel(group: string): string {
   const labels: Record<string, string> = {
-    navbar: "Navbar",
-    footer: "Footer",
     homepage: "Ana Sayfa",
     cart: "Sepet",
     checkout: "Sipariş (Checkout)",
     orderSuccess: "Sipariş Başarı Ekranı",
-    common: "Genel",
   };
   return labels[group] ?? group;
 }

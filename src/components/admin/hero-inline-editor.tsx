@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
@@ -124,8 +125,11 @@ export function HeroInlineEditor({
 }
 
 function SliderPreview({ slides }: { slides: HeroSlideItem[] }) {
-  const slide = slides[0];
+  const [index, setIndex] = useState(0);
+  const slide = slides[Math.min(index, slides.length - 1)];
   if (!slide) return null;
+  const count = slides.length;
+  const go = (next: number) => setIndex(((next % count) + count) % count);
 
   return (
     <div className="relative h-[400px] overflow-hidden bg-primary">
@@ -183,19 +187,21 @@ function SliderPreview({ slides }: { slides: HeroSlideItem[] }) {
         </div>
       </div>
 
-      {slides.length > 1 && (
+      {count > 1 && (
         <>
           <button
             type="button"
             aria-label="Önceki slayt"
-            className="absolute top-1/2 left-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background"
+            onClick={() => go(index - 1)}
+            className="absolute top-1/2 left-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background backdrop-blur-sm transition-colors hover:bg-primary/60"
           >
             <ChevronLeft className="size-5" />
           </button>
           <button
             type="button"
             aria-label="Sonraki slayt"
-            className="absolute top-1/2 right-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background"
+            onClick={() => go(index + 1)}
+            className="absolute top-1/2 right-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background backdrop-blur-sm transition-colors hover:bg-primary/60"
           >
             <ChevronRight className="size-5" />
           </button>
@@ -204,12 +210,23 @@ function SliderPreview({ slides }: { slides: HeroSlideItem[] }) {
 
       <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2">
         {slides.map((s, i) => (
-          <span
+          <button
             key={s.id}
-            className={`h-1.5 rounded-full ${i === 0 ? "w-8 bg-accent" : "w-3 bg-background/40"}`}
+            type="button"
+            aria-label={`${i + 1}. slayt`}
+            aria-current={i === index}
+            onClick={() => setIndex(i)}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === index ? "w-8 bg-accent" : "w-3 bg-background/40 hover:bg-background/70"
+            }`}
           />
         ))}
       </div>
+      {count > 1 && (
+        <span className="absolute right-4 bottom-4 z-30 rounded-full bg-primary/50 px-2.5 py-0.5 text-[11px] text-background tabular-nums backdrop-blur-sm">
+          {index + 1} / {count}
+        </span>
+      )}
     </div>
   );
 }

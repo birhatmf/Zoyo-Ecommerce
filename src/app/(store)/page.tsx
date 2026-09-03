@@ -36,8 +36,9 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero */}
-      {slides.length > 0 && content?.heroActive !== false ? (
+      {/* Hero — slider varsa heroActive'ten bağımsız gösterilir;
+          heroActive yalnızca klasik hero bölümünü kontrol eder */}
+      {slides.length > 0 ? (
         <div className="-mt-16">
           <HeroSlider
             slides={slides.map((slide) => ({

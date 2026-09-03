@@ -4,13 +4,15 @@ import Link from "next/link";
 import { NavbarInlineEditor } from "@/components/admin/navbar-inline-editor";
 import { getHeaderLinks } from "@/services/content.service";
 import { getSiteSettings } from "@/lib/settings";
+import { getActiveCategories } from "@/services/catalog.service";
 
 export const metadata: Metadata = { title: "Menü (Navbar)" };
 
 export default async function AdminNavbarPage() {
-  const [links, settings] = await Promise.all([
+  const [links, settings, categories] = await Promise.all([
     getHeaderLinks(),
     getSiteSettings(),
+    getActiveCategories(),
   ]);
 
   const siteName = settings.siteShortName || settings.siteName || "Zoyo";
@@ -38,6 +40,7 @@ export default async function AdminNavbarPage() {
             href: link.href,
             sortOrder: link.sortOrder,
           }))}
+          categories={categories.map((c) => ({ name: c.name, slug: c.slug }))}
         />
       </div>
     </div>

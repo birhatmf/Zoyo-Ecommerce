@@ -21,8 +21,8 @@ const sections = [
   },
   {
     href: "/admin/settings/order-notes",
-    title: "Sipariş Maddeleri",
-    description: "Checkout'ta müşteriye gösterilen madde şablonları.",
+    title: "Checkout Maddeleri",
+    description: "Sipariş formunda müşteriye gösterilen bilgilendirme maddeleri.",
   },
   {
     href: "/admin/settings/texts",

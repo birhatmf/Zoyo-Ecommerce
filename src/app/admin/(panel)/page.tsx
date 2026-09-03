@@ -1,13 +1,10 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  ArrowUpRight,
   Boxes,
-  CalendarDays,
-  CircleDollarSign,
   ClipboardList,
   Clock,
   Layers,
+  TrendingUp,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
@@ -17,156 +14,62 @@ import {
   ORDER_STATUS_BADGE_CLASSES,
   ORDER_STATUS_LABELS,
 } from "@/lib/order";
+import type { OrderStatus } from "@/generated/prisma/client";
 
 export const metadata = { title: "Dashboard" };
 
-// Durum çubukları için renk eşlemesi (badge sınıflarından bağımsız dolgu)
-const STATUS_BAR_CLASSES: Record<string, string> = {
-  PENDING: "bg-accent",
-  APPROVED: "bg-primary/70",
-  PAYMENT_PENDING: "bg-primary/50",
-  PAID: "bg-primary/70",
-  IN_PRODUCTION: "bg-primary/80",
-  READY: "bg-primary/60",
-  SHIPPED: "bg-primary/90",
-  COMPLETED: "bg-emerald-600",
-  CANCELLED: "bg-destructive/60",
-};
-
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// Operasyonel durum kartları (PRD §31): yalnızca işletme için anlamlı olanlar
+const STATUS_KPI_MAP: { status: OrderStatus; label: string }[] = [
+  { status: "PENDING", label: "Bekleyen" },
+  { status: "APPROVED", label: "Onaylanan" },
+  { status: "IN_PRODUCTION", label: "Üretimde" },
+  { status: "COMPLETED", label: "Tamamlanan" },
+];
 
 export default async function AdminDashboardPage() {
-  const now = new Date();
-  const startOfToday = startOfDay(now);
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const start14 = new Date(startOfToday);
-  start14.setDate(start14.getDate() - 13);
-
-  const [
-    allTime,
-    thisMonth,
-    today,
-    statusGroups,
-    recentOrders,
-    last14Orders,
-    topItems,
-    activeProducts,
-    draftProducts,
-    categoryCount,
-  ] = await Promise.all([
-    // İptaller ciroya katılmaz
-    prisma.order.aggregate({
-      where: { status: { not: "CANCELLED" } },
-      _sum: { total: true },
-      _count: true,
-    }),
-    prisma.order.aggregate({
-      where: { status: { not: "CANCELLED" }, createdAt: { gte: startOfMonth } },
-      _sum: { total: true },
-      _count: true,
-    }),
-    prisma.order.aggregate({
-      where: { status: { not: "CANCELLED" }, createdAt: { gte: startOfToday } },
-      _sum: { total: true },
-      _count: true,
-    }),
-    prisma.order.groupBy({ by: ["status"], _count: true }),
-    prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      select: {
-        id: true,
-        orderNumber: true,
-        customerFirstName: true,
-        customerLastName: true,
-        phoneNormalized: true,
-        total: true,
-        status: true,
-        createdAt: true,
-        invoiceType: true,
-      },
-    }),
-    prisma.order.findMany({
-      where: { status: { not: "CANCELLED" }, createdAt: { gte: start14 } },
-      select: { createdAt: true, total: true },
-    }),
-    prisma.orderItem.groupBy({
-      by: ["productName"],
-      _sum: { quantity: true, totalPrice: true },
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 5,
-    }),
-    prisma.product.count({ where: { status: "ACTIVE" } }),
-    prisma.product.count({ where: { status: "DRAFT" } }),
-    prisma.category.count(),
-  ]);
-
-  // 14 günlük seriyi gün gün doldur
-  const dailySeries: { date: Date; revenue: number; count: number }[] = [];
-  for (let i = 0; i < 14; i++) {
-    const day = new Date(start14);
-    day.setDate(day.getDate() + i);
-    dailySeries.push({ date: day, revenue: 0, count: 0 });
-  }
-  for (const order of last14Orders) {
-    const index = Math.floor(
-      (startOfDay(order.createdAt).getTime() - start14.getTime()) / 86_400_000,
-    );
-    if (index >= 0 && index < 14) {
-      dailySeries[index].revenue += Number(order.total);
-      dailySeries[index].count += 1;
-    }
-  }
-  const maxDailyRevenue = Math.max(...dailySeries.map((d) => d.revenue), 1);
+  const [statusGroups, recentOrders, activeProducts, draftProducts, categoryCount] =
+    await Promise.all([
+      prisma.order.groupBy({ by: ["status"], _count: true }),
+      prisma.order.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          orderNumber: true,
+          customerFirstName: true,
+          customerLastName: true,
+          phoneNormalized: true,
+          total: true,
+          status: true,
+          createdAt: true,
+          invoiceType: true,
+        },
+      }),
+      prisma.product.count({ where: { status: "ACTIVE" } }),
+      prisma.product.count({ where: { status: "DRAFT" } }),
+      prisma.category.count(),
+    ]);
 
   const statusMap = new Map(statusGroups.map((g) => [g.status, g._count]));
-  const totalOrders = allTime._count || 0;
-  const pendingCount = statusMap.get("PENDING") ?? 0;
+  const totalPending = statusMap.get("PENDING") ?? 0;
 
-  const kpis = [
-    {
-      label: "Toplam Ciro",
-      value: formatPrice(allTime._sum.total ?? 0),
-      sub: `${totalOrders} sipariş`,
-      href: "/admin/orders",
-      icon: CircleDollarSign,
-    },
-    {
-      label: "Bu Ay",
-      value: formatPrice(thisMonth._sum.total ?? 0),
-      sub: `${thisMonth._count} sipariş`,
-      href: "/admin/orders",
-      icon: CalendarDays,
-    },
-    {
-      label: "Bugün",
-      value: formatPrice(today._sum.total ?? 0),
-      sub: `${today._count} sipariş`,
-      href: "/admin/orders",
-      icon: ArrowUpRight,
-    },
-    {
-      label: "Bekleyen Sipariş",
-      value: String(pendingCount),
-      sub:
-        pendingCount > 0
-          ? "İnceleme gerekiyor"
-          : "Bekleyen sipariş yok",
-      href: "/admin/orders?status=PENDING",
-      icon: Clock,
-      alert: pendingCount > 0,
-    },
-  ];
+  const kpis = STATUS_KPI_MAP.map(({ status, label }) => ({
+    label,
+    value: String(statusMap.get(status) ?? 0),
+    href: `/admin/orders?status=${status}`,
+    alert: status === "PENDING" && (statusMap.get(status) ?? 0) > 0,
+  }));
 
   return (
     <div>
       <h1 className="font-heading text-xl font-medium">Dashboard</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {totalPending > 0
+          ? `${totalPending} bekleyen sipariş incelemeyi bekliyor.`
+          : "Bekleyen sipariş yok."}
+      </p>
 
-      {/* KPI kartları */}
+      {/* Durum kartları */}
       <div className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         {kpis.map((kpi) => (
           <Link
@@ -178,151 +81,23 @@ export default async function AdminDashboardPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">{kpi.label}</p>
-              <kpi.icon
-                className={`size-4 ${kpi.alert ? "text-accent" : "text-muted-foreground/60"}`}
+              <Clock
+                className={`size-4 ${
+                  kpi.alert ? "text-accent" : "text-muted-foreground/40"
+                }`}
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-2 font-heading text-2xl font-medium whitespace-nowrap">
+            <p className="mt-2 font-heading text-2xl font-medium tabular-nums">
               {kpi.value}
             </p>
-            <p
-              className={`mt-1 text-xs ${
-                kpi.alert ? "font-medium text-accent" : "text-muted-foreground"
-              }`}
-            >
-              {kpi.sub}
-            </p>
+            {kpi.alert && (
+              <p className="mt-1 text-xs font-medium text-accent">
+                İnceleme gerekiyor
+              </p>
+            )}
           </Link>
         ))}
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_320px]">
-        {/* Son 14 gün grafiği */}
-        <section className="rounded-md border border-border bg-card p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-medium">Son 14 Gün — Ciro</h2>
-            <p className="text-xs text-muted-foreground">
-              Günlük toplam (iptaller hariç)
-            </p>
-          </div>
-          <div className="mt-5 flex h-44 items-end gap-1.5 sm:gap-2">
-            {dailySeries.map((day) => {
-              const heightPct = Math.max(
-                (day.revenue / maxDailyRevenue) * 100,
-                day.count > 0 ? 4 : 2,
-              );
-              const isToday =
-                startOfDay(day.date).getTime() === startOfToday.getTime();
-              return (
-                <div
-                  key={day.date.toISOString()}
-                  className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
-                  title={`${day.date.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })} — ${day.count} sipariş, ${formatPrice(day.revenue)}`}
-                >
-                  <span className="text-[10px] font-medium tabular-nums text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                    {day.count > 0 ? formatPrice(day.revenue) : ""}
-                  </span>
-                  <div
-                    className={`w-full rounded-t-sm transition-all ${
-                      isToday
-                        ? "bg-accent"
-                        : day.count > 0
-                          ? "bg-primary/75 hover:bg-primary"
-                          : "bg-border"
-                    }`}
-                    style={{ height: `${heightPct}%` }}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className={`text-[10px] tabular-nums ${
-                      isToday ? "font-medium text-accent" : "text-muted-foreground"
-                    }`}
-                  >
-                    {day.date.getDate()}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center sm:text-left">
-            <div>
-              <dt className="text-xs text-muted-foreground">14 Günlük Ciro</dt>
-              <dd className="mt-0.5 text-sm font-medium tabular-nums">
-                {formatPrice(dailySeries.reduce((s, d) => s + d.revenue, 0))}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">14 Günlük Sipariş</dt>
-              <dd className="mt-0.5 text-sm font-medium tabular-nums">
-                {dailySeries.reduce((s, d) => s + d.count, 0)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Günlük Ortalama</dt>
-              <dd className="mt-0.5 text-sm font-medium tabular-nums">
-                {formatPrice(
-                  dailySeries.reduce((s, d) => s + d.revenue, 0) / 14,
-                )}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        {/* Sağ kolon: durum dağılımı */}
-        <section className="rounded-md border border-border bg-card p-5">
-          <h2 className="text-sm font-medium">Durum Dağılımı</h2>
-          <ul className="mt-4 space-y-3">
-            {ORDER_STATUSES.map((status) => {
-              const count = statusMap.get(status) ?? 0;
-              const pct =
-                totalOrders > 0 ? Math.round((count / totalOrders) * 100) : 0;
-              return (
-                <li key={status}>
-                  <Link
-                    href={`/admin/orders?status=${status}`}
-                    className="group block"
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground transition-colors group-hover:text-foreground">
-                        {ORDER_STATUS_LABELS[status]}
-                      </span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {count} · %{pct}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={`h-full rounded-full transition-all ${STATUS_BAR_CLASSES[status]}`}
-                        style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }}
-                        aria-hidden="true"
-                      />
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Envanter özeti */}
-          <div className="mt-6 grid grid-cols-3 divide-x divide-border border-t border-border pt-4 text-center">
-            <Link href="/admin/products" className="group px-1">
-              <Boxes className="mx-auto size-4 text-muted-foreground/60" aria-hidden="true" />
-              <p className="mt-1 font-heading text-lg font-medium">{activeProducts}</p>
-              <p className="text-[11px] leading-tight text-muted-foreground">Aktif Ürün</p>
-            </Link>
-            <Link href="/admin/products" className="group px-1">
-              <ClipboardList className="mx-auto size-4 text-muted-foreground/60" aria-hidden="true" />
-              <p className="mt-1 font-heading text-lg font-medium">{draftProducts}</p>
-              <p className="text-[11px] leading-tight text-muted-foreground">Taslak</p>
-            </Link>
-            <Link href="/admin/categories" className="group px-1">
-              <Layers className="mx-auto size-4 text-muted-foreground/60" aria-hidden="true" />
-              <p className="mt-1 font-heading text-lg font-medium">{categoryCount}</p>
-              <p className="text-[11px] leading-tight text-muted-foreground">Kategori</p>
-            </Link>
-          </div>
-        </section>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_320px]">
@@ -396,42 +171,71 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Çok satanlar */}
+        {/* Katalog özeti */}
         <section className="self-start rounded-md border border-border bg-card p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Çok Satanlar</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-medium">
+            <TrendingUp className="size-4 text-muted-foreground" aria-hidden="true" />
+            Katalog Özeti
+          </h2>
+          <div className="mt-4 space-y-2.5">
             <Link
-              href="/admin/products"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Ürünlere git"
+              href="/admin/products?status=ACTIVE"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
             >
-              <ArrowRight className="size-4" />
+              <span className="flex items-center gap-2.5 text-sm">
+                <Boxes className="size-4 text-muted-foreground" aria-hidden="true" />
+                Aktif Ürün
+              </span>
+              <span className="font-heading text-lg font-medium tabular-nums">{activeProducts}</span>
+            </Link>
+            <Link
+              href="/admin/products?status=DRAFT"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-2.5 text-sm">
+                <ClipboardList className="size-4 text-muted-foreground" aria-hidden="true" />
+                Taslak Ürün
+              </span>
+              <span className="font-heading text-lg font-medium tabular-nums">{draftProducts}</span>
+            </Link>
+            <Link
+              href="/admin/categories"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-2.5 text-sm">
+                <Layers className="size-4 text-muted-foreground" aria-hidden="true" />
+                Kategori
+              </span>
+              <span className="font-heading text-lg font-medium tabular-nums">{categoryCount}</span>
             </Link>
           </div>
-          {topItems.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Henüz satış verisi yok.
-            </p>
-          ) : (
-            <ol className="mt-4 space-y-3">
-              {topItems.map((item, i) => (
-                <li key={item.productName} className="flex items-start gap-3 text-sm">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate">{item.productName}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {item._sum.quantity} adet ·{" "}
-                      {formatPrice(item._sum.totalPrice ?? 0)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
         </section>
       </div>
+
+      {/* Durum dağılımı */}
+      <section className="mt-6 rounded-md border border-border bg-card p-5">
+        <h2 className="text-sm font-medium">Durum Dağılımı</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {ORDER_STATUSES.map((status) => {
+            const count = statusMap.get(status) ?? 0;
+            if (count === 0) return null;
+            return (
+              <Link
+                key={status}
+                href={`/admin/orders?status=${status}`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors hover:opacity-80 ${ORDER_STATUS_BADGE_CLASSES[status]}`}
+              >
+                {ORDER_STATUS_LABELS[status]}
+                <span className="font-medium tabular-nums">{count}</span>
+              </Link>
+            );
+          })}
+          {totalPending === 0 &&
+            recentOrders.length === 0 && (
+              <p className="text-sm text-muted-foreground">Henüz sipariş yok.</p>
+            )}
+        </div>
+      </section>
     </div>
   );
 }

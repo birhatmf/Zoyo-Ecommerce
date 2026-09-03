@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, ShoppingBag, Trash2, X } from "lucide-react";
 
 import {
   deleteHeaderLinkAction,
@@ -25,9 +25,11 @@ const inputClass =
 export function NavbarInlineEditor({
   links,
   siteName,
+  categories = [],
 }: {
   links: NavbarLinkItem[];
   siteName: string;
+  categories?: { name: string; slug: string }[];
 }) {
   const [adding, setAdding] = useState(false);
 
@@ -86,8 +88,27 @@ export function NavbarInlineEditor({
               </span>
             )}
           </nav>
-          <span className="text-xs text-muted-foreground">🛒 Sepet</span>
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-hidden="true">
+            <ShoppingBag className="size-4" />
+            Sepet
+          </span>
         </div>
+
+        {/* Kategori şeridi — kategori adları navbar'da görünen dinamik bölüm */}
+        {categories.length > 0 && (
+          <div className="border-t border-border/60 bg-secondary/30">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 sm:px-6">
+              <span className="text-[11px] font-medium tracking-widest text-muted-foreground uppercase">
+                Kategoriler
+              </span>
+              {categories.map((c) => (
+                <span key={c.slug} className="text-xs text-muted-foreground">
+                  {c.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Link ekleme */}
