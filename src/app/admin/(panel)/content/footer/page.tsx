@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   deleteFooterGroupAction,
   deleteFooterLinkAction,
-  saveFooterCopyrightAction,
   saveFooterGroupAction,
   saveFooterLinkAction,
 } from "@/app/admin/(panel)/content/actions";
@@ -61,28 +60,6 @@ export default async function AdminFooterContentPage() {
         Link ekleme, silme ve sıralama işlemleri buradan yapılır. Metinleri
         yukarıdaki canlı önizlemeden düzenleyebilirsiniz.
       </p>
-
-      {/* Copyright */}
-      <form
-        action={saveFooterCopyrightAction}
-        className="mt-6 flex items-end gap-3 rounded-md border border-border bg-card p-5"
-      >
-        <label className="flex-1">
-          <span className="mb-1.5 block text-sm text-muted-foreground">Copyright Metni</span>
-          <input
-            name="footerCopyright"
-            defaultValue={settings.footerCopyright ?? ""}
-            placeholder={`© ${new Date().getFullYear()} Zoyo Mobilya. Tüm hakları saklıdır.`}
-            className={inputClass}
-          />
-        </label>
-        <button
-          type="submit"
-          className="h-9 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-        >
-          Kaydet
-        </button>
-      </form>
 
       {/* Link grupları */}
       <div className="mt-8 space-y-6">

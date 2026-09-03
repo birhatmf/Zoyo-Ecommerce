@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 import { HeroInlineEditor } from "@/components/admin/hero-inline-editor";
 import { HeroSlidesManager } from "@/components/admin/hero-slides-manager";
-import { HomepageForm } from "@/components/admin/homepage-form";
+import { HomepageVisualForm } from "@/components/admin/homepage-visual-form";
 import { saveHomepageImageAction } from "@/app/admin/(panel)/content/actions";
 
 export const metadata: Metadata = { title: "Ana Sayfa İçeriği" };
@@ -94,30 +94,31 @@ export default async function AdminHomeContentPage() {
         </div>
       </section>
 
-      {/* Klasik hero + hikâye + CTA detay formu (görsel yükleme dahil) */}
+      {/* Görseller + görünürlük */}
       <section className="mt-6">
-        <h2 className="font-heading text-lg font-medium">Detay Düzenleme</h2>
+        <h2 className="font-heading text-lg font-medium">Görseller ve Görünürlük</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Görsel yükleme, hizalama, görünürlük ve diğer tüm alanlar buradan yönetilir.
+          Görsel yükleme, hero görünürlüğü ve hizalama ayarları buradan yapılır.
+          Metinler yukarıdaki canlı önizlemeden düzenlenir.
         </p>
         <div className="mt-4">
-          <HomepageForm
+          <HomepageVisualForm
             uploadImageAction={saveHomepageImageAction}
             defaults={{
+              heroImageDesktop: content?.heroImageDesktop ?? "",
+              heroImageMobile: content?.heroImageMobile ?? "",
+              heroAlignment: content?.heroAlignment ?? "left",
+              heroActive: content?.heroActive ?? true,
+              storyImage: content?.storyImage ?? "",
               heroTitle: content?.heroTitle ?? "",
               heroSubtitle: content?.heroSubtitle ?? "",
               heroDescription: content?.heroDescription ?? "",
-              heroImageDesktop: content?.heroImageDesktop ?? "",
-              heroImageMobile: content?.heroImageMobile ?? "",
               heroCtaLabel: content?.heroCtaLabel ?? "",
               heroCtaUrl: content?.heroCtaUrl ?? "",
               heroCtaSecondaryLabel: content?.heroCtaSecondaryLabel ?? "",
               heroCtaSecondaryUrl: content?.heroCtaSecondaryUrl ?? "",
-              heroAlignment: content?.heroAlignment ?? "left",
-              heroActive: content?.heroActive ?? true,
               storyTitle: content?.storyTitle ?? "",
               storyDescription: content?.storyDescription ?? "",
-              storyImage: content?.storyImage ?? "",
               customProductionTitle: content?.customProductionTitle ?? "",
               customProductionDescription:
                 content?.customProductionDescription ?? "",
