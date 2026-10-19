@@ -22,6 +22,11 @@ export async function Footer() {
 
   const siteName = settings.siteName || "Zoyo Mobilya";
 
+  const parsedFooterLogoHeight = Number.parseInt(settings.footerLogoHeight ?? "", 10);
+  const footerLogoHeight = Number.isFinite(parsedFooterLogoHeight)
+    ? Math.min(160, Math.max(16, parsedFooterLogoHeight))
+    : 40;
+
   return (
     <footer className="mt-auto border-t border-border bg-primary text-primary-foreground">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
@@ -31,9 +36,10 @@ export async function Footer() {
               <Image
                 src={settings.footerLogoUrl}
                 alt={siteName}
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain brightness-0 invert"
+                width={240}
+                height={footerLogoHeight}
+                style={{ height: `${footerLogoHeight}px` }}
+                className="w-auto object-contain brightness-0 invert"
               />
             ) : (
               settings.siteShortName || siteName

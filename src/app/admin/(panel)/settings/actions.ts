@@ -40,6 +40,9 @@ const SETTING_KEYS = [
   "seoTitleTemplate",
   "seoDescription",
   "seoOgImage",
+  "maintenanceMode",
+  "maintenanceMessage",
+  "footerLogoHeight",
 ] as const;
 
 export async function saveSettingsAction(
@@ -69,6 +72,62 @@ export async function saveSettingsAction(
   }
 
   revalidatePath("/");
+  revalidatePath("/admin/settings", "layout");
+  return { saved: true };
+}
+
+// ---------- Site yönetimi (bakım modu + footer logo boyutu) ----------
+
+const siteManagementSchema = z.object({
+  maintenanceMode: z.boolean(),
+  maintenanceMessage: z.string().trim().max(500).optional().or(z.literal("")),
+  footerLogoHeight: z.preprocess(
+    (value) => Number(value ?? 0),
+    z.number().int().min(16, "En az 16 px").max(160, "En fazla 160 px"),
+  ),
+});
+
+export async function saveSiteManagementAction(
+  _previousState: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const admin = await requireRole("ADMIN");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
+
+  const parsed = siteManagementSchema.safeParse({
+    maintenanceMode: formData.get("maintenanceMode") === "on",
+    maintenanceMessage: formData.get("maintenanceMessage") ?? "",
+    footerLogoHeight: formData.get("footerLogoHeight"),
+  });
+  if (!parsed.success) {
+    return {
+      error: "Lütfen alanları kontrol edin.",
+      fieldErrors: fieldErrorsFrom(parsed.error),
+    };
+  }
+
+  const updates = [
+    { key: "maintenanceMode", value: parsed.data.maintenanceMode ? "true" : "false" },
+    { key: "maintenanceMessage", value: parsed.data.maintenanceMessage || "" },
+    { key: "footerLogoHeight", value: String(parsed.data.footerLogoHeight) },
+  ];
+  for (const { key, value } of updates) {
+    await prisma.siteSetting.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    });
+  }
+
+  await recordAudit({
+    actor: admin,
+    action: "UPDATE",
+    entityType: "SiteSetting",
+    entityId: "siteManagement",
+    summary: `Site yönetimi güncellendi (bakım modu: ${parsed.data.maintenanceMode ? "açık" : "kapalı"})`,
+  });
+
+  revalidatePath("/", "layout");
   revalidatePath("/admin/settings", "layout");
   return { saved: true };
 }

@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { SiteManagementForm } from "@/components/admin/site-management-form";
+import { getSiteSettings } from "@/lib/settings";
+
+export const metadata: Metadata = { title: "Site Yönetimi" };
+
+export default async function AdminSiteManagementPage() {
+  const settings = await getSiteSettings();
+
+  return (
+    <div className="max-w-3xl">
+      <Link
+        href="/admin/settings"
+        className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        ← Ayarlar
+      </Link>
+      <h1 className="mt-1 font-heading text-xl font-medium">Site Yönetimi</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Bakım modu ve site görsel ayarları.
+      </p>
+      <div className="mt-6">
+        <SiteManagementForm defaults={settings} />
+      </div>
+    </div>
+  );
+}

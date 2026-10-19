@@ -5,6 +5,11 @@ export const metadata: Metadata = { title: "Ayarlar" };
 
 const sections = [
   {
+    href: "/admin/settings/site",
+    title: "Site Yönetimi",
+    description: "Bakım modu ve footer logo boyutu.",
+  },
+  {
     href: "/admin/settings/company",
     title: "Firma & Marka",
     description: "Firma adı, açıklama, logo, favicon ve sipariş ön eki.",
