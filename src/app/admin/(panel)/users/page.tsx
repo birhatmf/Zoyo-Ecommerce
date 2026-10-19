@@ -3,10 +3,13 @@ import { redirect } from "next/navigation";
 
 import {
   createAdminUserAction,
+  deleteAdminUserAction,
   toggleAdminUserAction,
   updateAdminUserRoleAction,
 } from "@/app/admin/(panel)/users/actions";
 import { AdminUsersForm } from "@/components/admin/admin-users-form";
+import { AdminResetPasswordButton } from "@/components/admin/admin-reset-password-button";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -21,6 +24,7 @@ export default async function AdminUsersPage() {
     select: {
       id: true,
       name: true,
+      username: true,
       email: true,
       role: true,
       active: true,
@@ -68,7 +72,10 @@ export default async function AdminUsersPage() {
               <tr key={user.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
                 <td className="px-4 py-3">
                   <p className="font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">@{user.username}</p>
+                  {user.email && (
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  )}
                 </td>
                 <td className="hidden px-4 py-3 md:table-cell">
                   <span
@@ -126,15 +133,25 @@ export default async function AdminUsersPage() {
                   {user.id === admin.id ? (
                     <span className="text-xs text-muted-foreground">Siz</span>
                   ) : (
-                    <form action={toggleAdminUserAction}>
-                      <input type="hidden" name="id" value={user.id} />
-                      <button
-                        type="submit"
-                        className="text-xs underline-offset-4 hover:underline"
-                      >
-                        {user.active ? "Devre Dışı Bırak" : "Etkinleştir"}
-                      </button>
-                    </form>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="flex items-center gap-3">
+                        <form action={toggleAdminUserAction}>
+                          <input type="hidden" name="id" value={user.id} />
+                          <button
+                            type="submit"
+                            className="text-xs underline-offset-4 hover:underline"
+                          >
+                            {user.active ? "Devre Dışı Bırak" : "Etkinleştir"}
+                          </button>
+                        </form>
+                        <AdminResetPasswordButton userId={user.id} />
+                        <ConfirmDeleteButton
+                          action={deleteAdminUserAction}
+                          hiddenFields={{ id: user.id }}
+                          entityName={user.name}
+                        />
+                      </div>
+                    </div>
                   )}
                 </td>
               </tr>

@@ -21,6 +21,9 @@ if (process.env.NODE_ENV === "production" && process.env.ALLOW_SEED !== "true") 
 
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
+  const adminUsername = (
+    process.env.SEED_ADMIN_USERNAME ?? adminEmail.split("@")[0]
+  ).toLowerCase();
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
   // src/lib/security/password.ts ile aynı politika uygulanır.
   if (!adminPassword || adminPassword.length < 12) {
@@ -40,12 +43,13 @@ async function main() {
     update: {},
     create: {
       name: "Admin",
+      username: adminUsername,
       email: adminEmail,
       passwordHash: hashSync(adminPassword, 12),
       role: "ADMIN",
     },
   });
-  console.log(`✔ Admin user: ${adminEmail}`);
+  console.log(`✔ Admin user: ${adminUsername} (${adminEmail})`);
 
   // ---------- Site settings ----------
   const defaultSettings: Record<string, string> = {

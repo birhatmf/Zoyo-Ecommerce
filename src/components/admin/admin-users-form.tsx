@@ -37,8 +37,16 @@ export function AdminUsersForm({
         <Field label="Ad Soyad *" error={state?.fieldErrors?.name}>
           <input name="name" required className={inputClass} />
         </Field>
-        <Field label="E-posta *" error={state?.fieldErrors?.email}>
-          <input name="email" type="email" required className={inputClass} />
+        <Field label="Kullanıcı Adı *" error={state?.fieldErrors?.username}>
+          <input
+            name="username"
+            required
+            autoComplete="off"
+            className={inputClass}
+          />
+        </Field>
+        <Field label="E-posta (opsiyonel)" error={state?.fieldErrors?.email}>
+          <input name="email" type="email" autoComplete="off" className={inputClass} />
         </Field>
         <Field
           label="Şifre *"

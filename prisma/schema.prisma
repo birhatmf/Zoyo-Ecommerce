@@ -59,7 +59,8 @@ enum ProductionStage {
 model AdminUser {
   id           String    @id @default(uuid()) @db.Uuid
   name         String
-  email        String    @unique
+  username     String    @unique
+  email        String?   @unique
   passwordHash String
   role         AdminRole @default(ADMIN)
   active       Boolean   @default(true)

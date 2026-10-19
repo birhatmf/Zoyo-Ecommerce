@@ -7,7 +7,8 @@ module.exports = {
       cwd: "/home/birhatmff/Zoyo-Ecommerce",
       env_production: {
         NODE_ENV: "production",
-        PORT: "3001",
+        PORT: "4070",
+        NEXT_PUBLIC_SITE_URL: "https://www.pinkhometr.com.tr",
       },
       node_args: "--max-old-space-size=1024",
       instances: 1,

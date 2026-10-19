@@ -88,9 +88,11 @@ export function HeaderBar({
               <Image
                 src={logoUrl}
                 alt={siteTitle}
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain"
+                width={192}
+                height={48}
+                className={`h-12 w-auto object-contain transition-[filter] duration-300 ${
+                  light ? "brightness-0 invert" : ""
+                }`}
               />
             ) : (
               siteName

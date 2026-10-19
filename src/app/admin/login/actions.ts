@@ -22,7 +22,7 @@ const MAX_FAILED_LOGINS = 10;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  identifier: z.string().trim().toLowerCase().min(1),
   password: z.string().min(1),
   totp: z
     .string()
@@ -44,22 +44,24 @@ export async function loginAction(
   }
 
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
     totp: formData.get("totp") ?? "",
   });
   if (!parsed.success) {
-    return { error: "E-posta ve şifre gereklidir." };
+    return { error: "Kullanıcı adı ve şifre gereklidir." };
   }
 
-  const admin = await prisma.adminUser.findUnique({
-    where: { email: parsed.data.email },
+  const admin = await prisma.adminUser.findFirst({
+    where: {
+      OR: [{ username: parsed.data.identifier }, { email: parsed.data.identifier }],
+    },
   });
 
   // Kullanıcı var mı / aktif mi / kilitli mi kontrolü
   if (!admin || !admin.active) {
     recordFailedAttempt(rateKey);
-    return { error: "E-posta veya şifre hatalı." };
+    return { error: "Kullanıcı adı veya şifre hatalı." };
   }
 
   if (admin.lockedUntil && admin.lockedUntil > new Date()) {
@@ -72,7 +74,7 @@ export async function loginAction(
   if (!passwordOk) {
     recordFailedAttempt(rateKey);
     await incrementFailedLogin(admin.id);
-    return { error: "E-posta veya şifre hatalı." };
+    return { error: "Kullanıcı adı veya şifre hatalı." };
   }
 
   // TOTP doğrulaması — hesap için 2FA etkinse zorunlu

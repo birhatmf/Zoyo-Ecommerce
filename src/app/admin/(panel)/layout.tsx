@@ -26,7 +26,7 @@ export default async function AdminPanelLayout({
         <div className="mt-8 flex flex-1 flex-col">
           <AdminNav role={admin.role} />
           <div className="mt-auto border-t border-border pt-4">
-            <p className="px-3 text-xs text-muted-foreground">{admin.email}</p>
+            <p className="px-3 text-xs text-muted-foreground">@{admin.username}</p>
             <div className="mt-2 px-3">
               <LogoutButton />
             </div>

@@ -92,7 +92,7 @@ export async function startTotpEnrollmentAction(): Promise<SecurityActionState> 
     data: { totpSecret: secret, totpEnabled: false },
   });
 
-  const otpAuthUrl = `otpauth://totp/${encodeURIComponent(`Zoyo:${admin.email}`)}?secret=${secret}&issuer=${encodeURIComponent("Zoyo")}&algorithm=SHA1&digits=6&period=30`;
+  const otpAuthUrl = `otpauth://totp/${encodeURIComponent(`Zoyo:${admin.email ?? admin.username}`)}?secret=${secret}&issuer=${encodeURIComponent("Zoyo")}&algorithm=SHA1&digits=6&period=30`;
 
   return { totpSecret: secret, otpAuthUrl };
 }

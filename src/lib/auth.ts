@@ -59,7 +59,7 @@ export async function requireAdmin() {
 
   const admin = await prisma.adminUser.findFirst({
     where: { id: adminId, active: true },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, username: true, email: true, role: true },
   });
   if (!admin) redirect("/admin/login");
 

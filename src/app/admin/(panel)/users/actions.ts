@@ -19,9 +19,28 @@ export type UserActionState = {
 
 const createUserSchema = z.object({
   name: z.string().trim().min(2, "Ad en az 2 karakter olmalıdır").max(100),
-  email: z.string().trim().toLowerCase().email("Geçerli bir e-posta giriniz"),
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2, "Kullanıcı adı en az 2 karakter olmalıdır")
+    .max(50, "Kullanıcı adı en fazla 50 karakter olabilir")
+    .regex(/^[a-z0-9_.-]+$/, "Kullanıcı adı yalnızca harf, rakam ve . _ - içerebilir"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Geçerli bir e-posta giriniz")
+    .optional()
+    .or(z.literal("")),
   password: z.string(),
   role: z.enum(["ADMIN", "EDITOR"]),
+});
+
+const resetPasswordSchema = z.object({
+  id: z.string().uuid(),
+  password: z.string(),
+  confirmPassword: z.string(),
 });
 
 const toggleSchema = z.object({
@@ -51,7 +70,8 @@ export async function createAdminUserAction(
 
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
-    email: formData.get("email"),
+    username: formData.get("username"),
+    email: formData.get("email") ?? "",
     password: formData.get("password"),
     role: formData.get("role") ?? "EDITOR",
   });
@@ -71,7 +91,8 @@ export async function createAdminUserAction(
     const created = await prisma.adminUser.create({
       data: {
         name: parsed.data.name,
-        email: parsed.data.email,
+        username: parsed.data.username,
+        email: parsed.data.email || null,
         passwordHash: await hash(parsed.data.password, 12),
         role: parsed.data.role,
       },
@@ -81,11 +102,16 @@ export async function createAdminUserAction(
       action: "CREATE",
       entityType: "AdminUser",
       entityId: created.id,
-      summary: `${created.name} (${created.email}) admin kullanıcısı oluşturuldu`,
+      summary: `${created.name} (@${created.username}) admin kullanıcısı oluşturuldu`,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("admin_users_email_key")) {
-      return { error: "Bu e-posta zaten kullanılıyor." };
+    if (error instanceof Error) {
+      if (error.message.includes("admin_users_username_key")) {
+        return { error: "Bu kullanıcı adı zaten kullanılıyor." };
+      }
+      if (error.message.includes("admin_users_email_key")) {
+        return { error: "Bu e-posta zaten kullanılıyor." };
+      }
     }
     console.error("Admin user create failed:", error);
     return { error: "Kullanıcı oluşturulamadı." };
@@ -107,7 +133,7 @@ export async function toggleAdminUserAction(formData: FormData): Promise<void> {
 
   const existing = await prisma.adminUser.findUnique({
     where: { id: parsed.data.id },
-    select: { active: true, name: true, email: true },
+    select: { active: true, name: true, email: true, username: true },
   });
   if (!existing) return;
 
@@ -120,7 +146,7 @@ export async function toggleAdminUserAction(formData: FormData): Promise<void> {
     action: existing.active ? "DISABLE" : "ENABLE",
     entityType: "AdminUser",
     entityId: parsed.data.id,
-    summary: `${existing.name} (${existing.email}) ${existing.active ? "devre dışı bırakıldı" : "etkinleştirildi"}`,
+    summary: `${existing.name} (@${existing.username}) ${existing.active ? "devre dışı bırakıldı" : "etkinleştirildi"}`,
   });
   revalidatePath("/admin/users");
 }
@@ -140,7 +166,7 @@ export async function updateAdminUserRoleAction(formData: FormData): Promise<voi
 
   const existing = await prisma.adminUser.findUnique({
     where: { id: parsed.data.id },
-    select: { name: true, email: true, role: true },
+    select: { name: true, email: true, username: true, role: true },
   });
   if (!existing) return;
 
@@ -153,7 +179,84 @@ export async function updateAdminUserRoleAction(formData: FormData): Promise<voi
     action: "UPDATE",
     entityType: "AdminUser",
     entityId: parsed.data.id,
-    summary: `${existing.name} rolü ${existing.role} → ${parsed.data.role}`,
+    summary: `${existing.name} (@${existing.username}) rolü ${existing.role} → ${parsed.data.role}`,
   });
   revalidatePath("/admin/users");
+}
+
+export async function deleteAdminUserAction(formData: FormData): Promise<void> {
+  const actor = await requireRole("ADMIN");
+  if (!actor) return;
+
+  const parsed = toggleSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return;
+
+  // Kendini silme koruması
+  if (parsed.data.id === actor.id) return;
+
+  const existing = await prisma.adminUser.findUnique({
+    where: { id: parsed.data.id },
+    select: { name: true, email: true, username: true },
+  });
+  if (!existing) return;
+
+  await prisma.adminUser.delete({ where: { id: parsed.data.id } });
+  await recordAudit({
+    actor,
+    action: "DELETE",
+    entityType: "AdminUser",
+    entityId: parsed.data.id,
+    summary: `${existing.name} (@${existing.username}) admin kullanıcısı silindi`,
+  });
+  revalidatePath("/admin/users");
+}
+
+export async function resetAdminUserPasswordAction(
+  _previousState: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const actor = await requireRole("ADMIN");
+  if (!actor) return { error: "Bu işlem için yetkiniz yok." };
+
+  const parsed = resetPasswordSchema.safeParse({
+    id: formData.get("id"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
+    return { error: "Lütfen form alanlarını kontrol edin." };
+  }
+  if (parsed.data.password !== parsed.data.confirmPassword) {
+    return { error: "Yeni şifreler eşleşmiyor." };
+  }
+
+  // Kendi şifreni mevcut şifreni doğrulayan Ayarlar > Güvenlik üzerinden değiştir.
+  if (parsed.data.id === actor.id) {
+    return { error: "Kendi şifrenizi Ayarlar > Güvenlik sayfasından değiştirin." };
+  }
+
+  const policy = validatePasswordPolicy(parsed.data.password);
+  if (!policy.ok) {
+    return { error: policy.reason, fieldErrors: { password: policy.reason } };
+  }
+
+  const existing = await prisma.adminUser.findUnique({
+    where: { id: parsed.data.id },
+    select: { name: true, email: true, username: true },
+  });
+  if (!existing) return { error: "Kullanıcı bulunamadı." };
+
+  await prisma.adminUser.update({
+    where: { id: parsed.data.id },
+    data: { passwordHash: await hash(parsed.data.password, 12) },
+  });
+  await recordAudit({
+    actor,
+    action: "UPDATE",
+    entityType: "AdminUser",
+    entityId: parsed.data.id,
+    summary: `${existing.name} (@${existing.username}) şifresi yönetici tarafından sıfırlandı`,
+  });
+  revalidatePath("/admin/users");
+  return { saved: true };
 }
