@@ -16,6 +16,12 @@ const fields: SettingsField[] = [
     hint: "Ürün ve sipariş sayfalarındaki WhatsApp butonlarında kullanılır",
   },
   { name: "email", label: "E-posta" },
+  {
+    name: "mapUrl",
+    label: "Google Maps Bağlantısı",
+    placeholder: "https://maps.app.goo.gl/...",
+    hint: "Adrese tıklandığında açılır. Boşsa adres metniyle harita araması yapılır.",
+  },
   { name: "workingHours", label: "Çalışma Saatleri" },
   { name: "instagram", label: "Instagram URL" },
   { name: "facebook", label: "Facebook URL" },

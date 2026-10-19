@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
-import { telUrl, whatsappUrl } from "@/lib/format";
+import { mapsUrl, telUrl, whatsappUrl } from "@/lib/format";
 import { getSiteSettings } from "@/lib/settings";
 import { getStorefrontText } from "@/lib/storefront-text";
 import { getFooterLinkGroups } from "@/services/content.service";
@@ -26,6 +26,8 @@ export async function Footer() {
   const footerLogoHeight = Number.isFinite(parsedFooterLogoHeight)
     ? Math.min(160, Math.max(16, parsedFooterLogoHeight))
     : 40;
+
+  const mapHref = mapsUrl(settings.address, settings.mapUrl);
 
   return (
     <footer className="mt-auto border-t border-border bg-primary text-primary-foreground">
@@ -98,7 +100,18 @@ export async function Footer() {
             {settings.address && (
               <li className="flex items-start gap-2.5">
                 <MapPin className="mt-0.5 size-4 shrink-0" />
-                <span>{settings.address}</span>
+                {mapHref ? (
+                  <a
+                    href={mapHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-primary-foreground"
+                  >
+                    {settings.address}
+                  </a>
+                ) : (
+                  <span>{settings.address}</span>
+                )}
               </li>
             )}
             {settings.phone && (

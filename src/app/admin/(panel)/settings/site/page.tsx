@@ -21,6 +21,15 @@ export default async function AdminSiteManagementPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Bakım modu ve site görsel ayarları.
       </p>
+      <p
+        className={`mt-3 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs ${
+          settings.maintenanceMode === "true"
+            ? "border-destructive/30 bg-destructive/5 text-destructive"
+            : "border-primary/20 bg-primary/5 text-primary"
+        }`}
+      >
+        Şu an: {settings.maintenanceMode === "true" ? "Bakım modu AÇIK" : "Site yayında"}
+      </p>
       <div className="mt-6">
         <SiteManagementForm defaults={settings} />
       </div>

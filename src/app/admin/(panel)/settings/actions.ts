@@ -35,6 +35,7 @@ const SETTING_KEYS = [
   "facebook",
   "youtube",
   "workingHours",
+  "mapUrl",
   "orderPrefix",
   "seoTitle",
   "seoTitleTemplate",

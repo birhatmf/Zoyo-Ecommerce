@@ -1,10 +1,17 @@
 import Image from "next/image";
 import { Mail, MessageCircle, Phone } from "lucide-react";
 
+import { enableSitePreviewAction } from "@/app/preview-actions";
 import { telUrl, whatsappUrl } from "@/lib/format";
 import type { SiteSettings } from "@/lib/settings";
 
-export function MaintenanceScreen({ settings }: { settings: SiteSettings }) {
+export function MaintenanceScreen({
+  settings,
+  canPreview = false,
+}: {
+  settings: SiteSettings;
+  canPreview?: boolean;
+}) {
   const siteName = settings.siteName || "Pink Home";
   const message =
     settings.maintenanceMessage ||
@@ -13,6 +20,20 @@ export function MaintenanceScreen({ settings }: { settings: SiteSettings }) {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center bg-background px-6 py-16 text-center">
       <meta name="robots" content="noindex" />
+
+      {canPreview && (
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-md border border-border bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
+          <span>Yönetici olarak giriş yaptınız — site bakımda.</span>
+          <form action={enableSitePreviewAction}>
+            <button
+              type="submit"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              Siteyi önizle
+            </button>
+          </form>
+        </div>
+      )}
 
       {settings.logoUrl ? (
         <Image

@@ -1,22 +1,25 @@
+import { cookies } from "next/headers";
+
 import { getSessionAdminId } from "@/lib/auth";
+import { PREVIEW_COOKIE } from "@/lib/maintenance";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 import { Footer } from "@/components/storefront/footer";
 import { Header } from "@/components/storefront/header";
 import { MaintenanceScreen } from "@/components/storefront/maintenance";
+import { PreviewBanner } from "@/components/storefront/preview-banner";
+import { WhatsappFloat } from "@/components/storefront/whatsapp-float";
 import { getActiveHeroSlides } from "@/services/content.service";
 
 export const dynamic = "force-dynamic";
 
-// Geçerli bir yönetici oturumu varsa bakım modunda siteyi görmeye devam eder.
-async function isAdminPreview(): Promise<boolean> {
+async function getActiveAdmin() {
   const adminId = await getSessionAdminId();
-  if (!adminId) return false;
-  const admin = await prisma.adminUser.findFirst({
+  if (!adminId) return null;
+  return prisma.adminUser.findFirst({
     where: { id: adminId, active: true },
     select: { id: true },
   });
-  return Boolean(admin);
 }
 
 export default async function StoreLayout({
@@ -25,9 +28,17 @@ export default async function StoreLayout({
   children: React.ReactNode;
 }) {
   const settings = await getSiteSettings();
+  const maintenance = settings.maintenanceMode === "true";
 
-  if (settings.maintenanceMode === "true" && !(await isAdminPreview())) {
-    return <MaintenanceScreen settings={settings} />;
+  // Bakım modu herkese uygulanır; yönetici "önizleme" ile siteyi görebilir.
+  if (maintenance) {
+    const admin = await getActiveAdmin();
+    const previewing =
+      Boolean(admin) && (await cookies()).get(PREVIEW_COOKIE)?.value === "1";
+
+    if (!previewing) {
+      return <MaintenanceScreen settings={settings} canPreview={Boolean(admin)} />;
+    }
   }
 
   // Slider varsa navbar şeffaf başlar (overlay modu)
@@ -35,9 +46,16 @@ export default async function StoreLayout({
 
   return (
     <div className="flex min-h-svh flex-col">
+      {maintenance && <PreviewBanner />}
       <Header overlay={slides.length > 0} />
       <main className="flex-1">{children}</main>
       <Footer />
+      {settings.whatsapp && (
+        <WhatsappFloat
+          phone={settings.whatsapp}
+          siteName={settings.siteName || "Pink Home"}
+        />
+      )}
     </div>
   );
 }
