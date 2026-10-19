@@ -41,11 +41,7 @@ const productFormSchema = z.object({
   price: nullableNumber(1_000_000_000),
   discountPrice: nullableNumber(1_000_000_000),
 
-  categoryId: z
-    .preprocess(
-      (value) => (value === "" || value === null ? null : value),
-      z.string().uuid("Geçersiz kategori").nullable(),
-    ),
+  categoryIds: z.array(z.string().uuid("Geçersiz kategori")).default([]),
 
   material: z.string().trim().max(255).optional().or(z.literal("")),
   dimensions: z.string().trim().max(255).optional().or(z.literal("")),
@@ -68,7 +64,7 @@ function parseProductForm(formData: FormData) {
     description: formData.get("description") ?? "",
     price: formData.get("price"),
     discountPrice: formData.get("discountPrice"),
-    categoryId: formData.get("categoryId"),
+    categoryIds: formData.getAll("categoryIds"),
     material: formData.get("material") ?? "",
     dimensions: formData.get("dimensions") ?? "",
     productionTime: formData.get("productionTime") ?? "",
@@ -123,7 +119,6 @@ export async function saveProductAction(
     price: input.price!.toFixed(2),
     discountPrice:
       input.discountPrice !== null ? input.discountPrice.toFixed(2) : null,
-    categoryId: input.categoryId,
     material: input.material || null,
     dimensions: input.dimensions || null,
     productionTime: input.productionTime || null,
@@ -137,10 +132,16 @@ export async function saveProductAction(
   try {
     let productId = typeof id === "string" && id ? id : null;
     const isNew = !productId;
+    const categoryLinks = input.categoryIds.map((catId) => ({ id: catId }));
     if (productId) {
-      await prisma.product.update({ where: { id: productId }, data });
+      await prisma.product.update({
+        where: { id: productId },
+        data: { ...data, categories: { set: categoryLinks } },
+      });
     } else {
-      const created = await prisma.product.create({ data });
+      const created = await prisma.product.create({
+        data: { ...data, categories: { connect: categoryLinks } },
+      });
       productId = created.id;
     }
     await recordAudit({
@@ -248,10 +249,14 @@ export async function bulkProductAction(formData: FormData): Promise<void> {
     });
   } else if (action === "set-category") {
     if (!categoryId) return;
-    await prisma.product.updateMany({
-      where: { id: { in: ids } },
-      data: { categoryId },
-    });
+    await Promise.all(
+      ids.map((productId) =>
+        prisma.product.update({
+          where: { id: productId },
+          data: { categories: { set: [{ id: categoryId }] } },
+        }),
+      ),
+    );
   }
 
   await recordAudit({

@@ -17,7 +17,7 @@ export type ProductFormDefaults = {
   description?: string;
   price?: string;
   discountPrice?: string;
-  categoryId?: string | null;
+  categoryIds?: string[];
   material?: string;
   dimensions?: string;
   productionTime?: string;
@@ -105,15 +105,28 @@ export function ProductForm({
             className={inputClass}
           />
         </Field>
-        <Field label="Kategori" error={fieldError("categoryId")}>
-          <select name="categoryId" defaultValue={defaults.categoryId ?? ""} className={inputClass}>
-            <option value="">Kategorisiz</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+        <Field label="Kategoriler" error={fieldError("categoryIds")} className="sm:col-span-2">
+          {categories.length === 0 ? (
+            <span className="text-xs text-muted-foreground">Henüz kategori eklenmemiş.</span>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {categories.map((category) => (
+                <label
+                  key={category.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    name="categoryIds"
+                    value={category.id}
+                    defaultChecked={defaults.categoryIds?.includes(category.id)}
+                    className="size-4 accent-accent"
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          )}
         </Field>
         <Field label="Durum" error={fieldError("status")}>
           <select name="status" defaultValue={defaults.status ?? "DRAFT"} className={inputClass}>

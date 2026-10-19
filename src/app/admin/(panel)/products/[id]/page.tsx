@@ -30,7 +30,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       where: { id },
       include: {
         images: { orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }] },
-        category: true,
+        categories: true,
       },
     }),
     prisma.category.findMany({
@@ -215,7 +215,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             price: String(Number(product.price)),
             discountPrice:
               product.discountPrice !== null ? String(Number(product.discountPrice)) : "",
-            categoryId: product.categoryId,
+            categoryIds: product.categories.map((category) => category.id),
             material: product.material ?? "",
             dimensions: product.dimensions ?? "",
             productionTime: product.productionTime ?? "",

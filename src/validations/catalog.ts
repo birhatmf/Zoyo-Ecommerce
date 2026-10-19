@@ -16,7 +16,7 @@ export const productSchema = z.object({
   price: z.number({ message: "Geçerli bir fiyat giriniz" }).positive("Fiyat 0'dan büyük olmalıdır"),
   discountPrice: z.number().positive().nullable().optional(),
 
-  categoryId: z.string().uuid().nullable().optional(),
+  categoryIds: z.array(z.string().uuid()).default([]),
 
   material: z.string().trim().max(255).optional().or(z.literal("")),
   dimensions: z.string().trim().max(255).optional().or(z.literal("")),

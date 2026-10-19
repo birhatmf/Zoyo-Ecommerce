@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const productInclude = {
   images: { orderBy: { sortOrder: "asc" as const } },
-  category: true,
+  categories: true,
 } as const;
 
 export async function getActiveProducts() {
@@ -44,7 +44,7 @@ export async function getCategoryBySlug(slug: string) {
 
 export async function getProductsByCategory(categoryId: string) {
   return prisma.product.findMany({
-    where: { status: "ACTIVE", categoryId },
+    where: { status: "ACTIVE", categories: { some: { id: categoryId } } },
     include: productInclude,
     orderBy: { createdAt: "desc" },
   });

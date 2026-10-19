@@ -290,7 +290,7 @@ async function main() {
       update: {},
       create: {
         ...data,
-        categoryId: categories[categorySlug],
+        categories: { connect: { id: categories[categorySlug] } },
         status: "ACTIVE",
         description:
           "Seçkin doğal ahşaptan, usta işçiliğiyle üretilmiş butik bir parça. Her ürün el yapımı olduğu için doku ve tonlarda hafif farklılıklar gösterebilir.",

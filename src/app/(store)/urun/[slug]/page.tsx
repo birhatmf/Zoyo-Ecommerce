@@ -65,9 +65,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
     { label: "Teslimat", value: product.deliveryInformation },
     {
       label: "Kategori",
-      value: product.category?.name,
-      href: product.category
-        ? `/kategori/${product.category.slug}`
+      value:
+        product.categories.map((category) => category.name).join(", ") ||
+        undefined,
+      href: product.categories[0]
+        ? `/kategori/${product.categories[0].slug}`
         : undefined,
     },
   ].filter((spec) => spec.value);
@@ -79,7 +81,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     name: product.name,
     sku: product.productCode,
     description: product.shortDescription ?? product.description ?? undefined,
-    category: product.category?.name,
+    category: product.categories.map((category) => category.name).join(", ") || undefined,
     offers: {
       "@type": "Offer",
       price: Number(discountPrice ?? product.price).toFixed(2),
@@ -123,13 +125,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
         />
 
         <div>
-          {product.category && (
-            <Link
-              href={`/kategori/${product.category.slug}`}
-              className="text-xs font-medium tracking-[0.2em] text-accent uppercase transition-opacity hover:opacity-80"
-            >
-              {product.category.name}
-            </Link>
+          {product.categories.length > 0 && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {product.categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/kategori/${category.slug}`}
+                  className="text-xs font-medium tracking-[0.2em] text-accent uppercase transition-opacity hover:opacity-80"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </div>
           )}
           <h1 className="mt-2 font-heading text-3xl leading-tight font-medium text-balance sm:text-4xl">
             {product.name}

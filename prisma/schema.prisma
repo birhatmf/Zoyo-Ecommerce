@@ -113,7 +113,6 @@ model Product {
   description         String?
   price               Decimal       @db.Decimal(12, 2)
   discountPrice       Decimal?      @db.Decimal(12, 2)
-  categoryId          String?       @db.Uuid
   material            String?
   dimensions          String?
   productionTime      String?
@@ -128,12 +127,11 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  category Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categories Category[]
   images   ProductImage[]
   orderItems OrderItem[]
 
   @@index([status, featured])
-  @@index([categoryId])
   @@map("products")
 }
 

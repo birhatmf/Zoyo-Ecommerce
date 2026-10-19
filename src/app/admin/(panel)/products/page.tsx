@@ -32,7 +32,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
 
   const where: Prisma.ProductWhereInput = {};
   if (validStatus) where.status = validStatus;
-  if (categoryId) where.categoryId = categoryId;
+  if (categoryId) where.categories = { some: { id: categoryId } };
   if (query) {
     where.OR = [
       { name: { contains: query, mode: "insensitive" } },
@@ -47,7 +47,7 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
-        category: { select: { name: true } },
+        categories: { select: { name: true } },
         images: { orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }], take: 1 },
       },
     }),
@@ -172,7 +172,10 @@ export default async function AdminProductsPage({ searchParams }: ProductsPagePr
             featured: p.featured,
             price: p.price,
             status: p.status,
-            categoryName: p.category?.name ?? null,
+            categoryName:
+              p.categories.length > 0
+                ? p.categories.map((category) => category.name).join(", ")
+                : null,
             coverUrl: p.images[0]?.url ?? null,
           }))}
           categories={categories}
