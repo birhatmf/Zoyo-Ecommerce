@@ -219,7 +219,7 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
 
 const bulkSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
-  action: z.enum(["activate", "deactivate", "set-category"]),
+  action: z.enum(["activate", "deactivate", "set-category", "delete"]),
   categoryId: z.string().uuid().optional(),
 });
 
@@ -257,6 +257,8 @@ export async function bulkProductAction(formData: FormData): Promise<void> {
         }),
       ),
     );
+  } else if (action === "delete") {
+    await prisma.product.deleteMany({ where: { id: { in: ids } } });
   }
 
   await recordAudit({

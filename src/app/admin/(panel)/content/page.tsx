@@ -10,6 +10,11 @@ const sections = [
     description: "Hero bölümü, marka hikâyesi ve özel üretim CTA içerikleri.",
   },
   {
+    href: "/admin/content/showcase",
+    title: "Vitrin",
+    description: "Ana sayfa vitrin ürünleri (seç ve sırala).",
+  },
+  {
     href: "/admin/content/navbar",
     title: "Menü (Navbar)",
     description: "Üst menü bağlantıları; kategori veya özel sayfa hedefleri.",

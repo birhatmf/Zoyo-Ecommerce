@@ -1,27 +1,20 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 
-import { ProductCard } from "@/components/storefront/product-card";
 import { HeroSlider } from "@/components/storefront/hero-slider";
+import { ShowcaseSection } from "@/components/storefront/showcase-section";
 import { SmartImage } from "@/components/storefront/smart-image";
 import { whatsappUrl } from "@/lib/format";
-import { toProductCardData } from "@/lib/product";
 import { getSiteSettings } from "@/lib/settings";
 import { getStorefrontTexts } from "@/lib/storefront-text";
-import {
-  getActiveCategories,
-  getFeaturedProducts,
-} from "@/services/catalog.service";
 import {
   getActiveHeroSlides,
   getHomepageContent,
 } from "@/services/content.service";
 
 export default async function HomePage() {
-  const [content, categories, featured, settings, slides, texts] = await Promise.all([
+  const [content, settings, slides, texts] = await Promise.all([
     getHomepageContent(),
-    getActiveCategories(),
-    getFeaturedProducts(),
     getSiteSettings(),
     getActiveHeroSlides(),
     getStorefrontTexts(),
@@ -110,44 +103,8 @@ export default async function HomePage() {
         )
       )}
 
-      {/* Kategoriler */}
-      {categories.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-          <SectionHeading title={texts["homepage.categoriesHeading"]} href="/urunler" linkLabel={texts["homepage.viewAll"]} />
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/kategori/${category.slug}`} className="group block">
-                <div className="relative aspect-[5/4] overflow-hidden rounded-md bg-muted">
-                  <SmartImage
-                    src={category.image}
-                    alt={category.name}
-                    fallbackLabel={category.name}
-                    className="transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                </div>
-                <h3 className="mt-3.5 font-heading text-base font-medium">{category.name}</h3>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Öne Çıkan Ürünler */}
-      {featured.length > 0 && (
-        <section className="border-y border-border bg-secondary/50">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <SectionHeading title={texts["homepage.featuredHeading"]} href="/urunler" linkLabel={texts["homepage.allProducts"]} />
-            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-              {featured.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={toProductCardData(product)}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Vitrin — admin'in seçtiği ürünler (tam genişlik, dönüşümlü, animasyonlu) */}
+      <ShowcaseSection />
 
       {/* Marka / üretim hikâyesi */}
       {(content?.storyTitle || content?.storyDescription) && (
@@ -204,28 +161,5 @@ export default async function HomePage() {
         </section>
       )}
     </>
-  );
-}
-
-function SectionHeading({
-  title,
-  href,
-  linkLabel,
-}: {
-  title: string;
-  href: string;
-  linkLabel: string;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <h2 className="font-heading text-2xl font-medium sm:text-3xl">{title}</h2>
-      <Link
-        href={href}
-        className="group inline-flex items-center gap-1.5 pb-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        {linkLabel}
-        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-      </Link>
-    </div>
   );
 }

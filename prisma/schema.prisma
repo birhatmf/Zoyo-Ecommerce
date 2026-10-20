@@ -128,11 +128,25 @@ model Product {
   updatedAt DateTime @updatedAt
 
   categories Category[]
+  showcase ShowcaseProduct?
   images   ProductImage[]
   orderItems OrderItem[]
 
   @@index([status, featured])
   @@map("products")
+}
+
+// Ana sayfa "Vitrin" bölümü için admin'in elle seçtiği ürünler (sıralı).
+model ShowcaseProduct {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @unique @db.Uuid
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sortOrder])
+  @@map("showcase_products")
 }
 
 model ProductImage {

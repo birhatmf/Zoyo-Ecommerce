@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckSquare, Square } from "lucide-react";
 
-import { bulkProductAction } from "@/app/admin/(panel)/products/actions";
+import { bulkProductAction, deleteProductAction } from "@/app/admin/(panel)/products/actions";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { formatPrice } from "@/lib/format";
 
 export type ProductRow = {
@@ -66,6 +67,12 @@ export function ProductTable({
   async function runBulk() {
     if (selected.size === 0 || !bulkAction) return;
     if (bulkAction === "set-category" && !categoryId) return;
+    if (
+      bulkAction === "delete" &&
+      !window.confirm(`${selected.size} ürün kalıcı olarak silinsin mi?`)
+    ) {
+      return;
+    }
 
     setBusy(true);
     const fd = new FormData();
@@ -101,6 +108,7 @@ export function ProductTable({
             <option value="activate">Yayınla</option>
             <option value="deactivate">Pasife al</option>
             <option value="set-category">Kategori ata</option>
+            <option value="delete">Sil</option>
           </select>
           {bulkAction === "set-category" && (
             <select
@@ -155,12 +163,13 @@ export function ProductTable({
               <th className="hidden px-4 py-3 font-medium lg:table-cell">Kategori</th>
               <th className="px-4 py-3 font-medium">Fiyat</th>
               <th className="px-4 py-3 font-medium">Durum</th>
+              <th className="px-4 py-3 font-medium">İşlem</th>
             </tr>
           </thead>
           <tbody>
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                   Kayıt bulunamadı.
                 </td>
               </tr>
@@ -214,6 +223,13 @@ export function ProductTable({
                     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs ${STATUS_CLASSES[product.status]}`}>
                       {STATUS_LABELS[product.status]}
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <ConfirmDeleteButton
+                      action={deleteProductAction}
+                      hiddenFields={{ id: product.id }}
+                      entityName={product.name}
+                    />
                   </td>
                 </tr>
               );

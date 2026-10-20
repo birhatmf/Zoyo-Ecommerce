@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
+import { saveImage } from "@/lib/storage";
 import { mediaRefSchema } from "@/lib/validation/media-url";
 
 export type CategoryActionState = {
@@ -51,6 +52,13 @@ export async function saveCategoryAction(
 ): Promise<CategoryActionState> {
   const admin = await requireRole("EDITOR");
   if (!admin) return { error: "Bu işlem için yetkiniz yok." };
+
+  // Yeni bir dosya seçildiyse yükle ve görsel URL'sini güncelle.
+  const imageFile = formData.get("imageFile");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    const result = await saveImage(imageFile);
+    if (result.ok) formData.set("image", result.url);
+  }
 
   const parsed = categoryFormSchema.safeParse({
     name: formData.get("name"),

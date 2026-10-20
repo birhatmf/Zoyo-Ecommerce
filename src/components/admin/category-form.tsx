@@ -7,6 +7,7 @@ import {
   saveCategoryAction,
   type CategoryActionState,
 } from "@/app/admin/(panel)/categories/actions";
+import { MediaPicker } from "@/components/admin/media-picker";
 import { slugify } from "@/lib/slugify";
 
 export type CategoryFormDefaults = {
@@ -31,6 +32,7 @@ export function CategoryForm({ defaults = {} }: { defaults?: CategoryFormDefault
   );
   const [slug, setSlug] = useState(defaults.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(defaults.slug));
+  const [image, setImage] = useState(defaults.image ?? "");
 
   const fieldError = (name: string) => state?.fieldErrors?.[name];
 
@@ -84,14 +86,36 @@ export function CategoryForm({ defaults = {} }: { defaults?: CategoryFormDefault
           <textarea name="description" rows={3} defaultValue={defaults.description} className={`${inputClass} resize-y`} />
         </div>
         <div>
-          <span className="mb-1.5 block text-sm text-muted-foreground">Görsel URL</span>
-          <input
-            name="image"
-            type="url"
-            defaultValue={defaults.image}
-            placeholder="/uploads/... veya https://..."
-            className={inputClass}
-          />
+          <span className="mb-1.5 block text-sm text-muted-foreground">Görsel</span>
+          <div className="flex items-center gap-2">
+            <input
+              name="image"
+              type="text"
+              value={image}
+              onChange={(event) => setImage(event.target.value)}
+              placeholder="/api/media/... veya https://..."
+              className={inputClass}
+            />
+            <MediaPicker onSelect={(url) => setImage(url)} />
+          </div>
+          <div className="mt-2">
+            <input
+              type="file"
+              name="imageFile"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              aria-label="Kategori görseli yükle"
+              className="w-full text-xs text-muted-foreground file:mr-2 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-secondary-foreground hover:file:bg-muted"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground/80">
+              Dosya seçerseniz kaydedince yüklenir; ya da kütüphaneden seçin.
+            </span>
+          </div>
+          {image && (
+            <div className="relative mt-2 aspect-[5/4] w-32 overflow-hidden rounded-md bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="" className="size-full object-cover" />
+            </div>
+          )}
           {fieldError("image") && (
             <span className="mt-1 block text-xs text-destructive">{fieldError("image")}</span>
           )}

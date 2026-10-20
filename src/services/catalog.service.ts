@@ -49,3 +49,14 @@ export async function getProductsByCategory(categoryId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+// Ana sayfa "Vitrin": admin'in seçtiği, sıralı ve aktif ürünler.
+export async function getShowcaseProducts(limit = 4) {
+  const items = await prisma.showcaseProduct.findMany({
+    where: { product: { status: "ACTIVE" } },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    take: limit,
+    include: { product: { include: productInclude } },
+  });
+  return items.map((item) => item.product);
+}

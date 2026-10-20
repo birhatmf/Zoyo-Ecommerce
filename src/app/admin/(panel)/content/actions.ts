@@ -574,3 +574,76 @@ export async function saveHeroSlideFieldAction(formData: FormData): Promise<void
   revalidatePath("/admin/content/home");
   revalidatePath("/");
 }
+
+// ---------- Ana sayfa vitrin ürünleri ----------
+
+export async function addShowcaseProductAction(formData: FormData): Promise<void> {
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
+
+  const productId = z.uuid().safeParse(formData.get("productId"));
+  if (!productId.success) return;
+
+  const product = await prisma.product.findFirst({
+    where: { id: productId.data, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (!product) return;
+
+  const last = await prisma.showcaseProduct.findFirst({
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+  await prisma.showcaseProduct.upsert({
+    where: { productId: productId.data },
+    update: {},
+    create: { productId: productId.data, sortOrder: (last?.sortOrder ?? -1) + 1 },
+  });
+
+  revalidatePath("/admin/content/showcase");
+  revalidatePath("/");
+}
+
+export async function removeShowcaseProductAction(formData: FormData): Promise<void> {
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
+
+  const id = z.uuid().safeParse(formData.get("id"));
+  if (!id.success) return;
+
+  await prisma.showcaseProduct.delete({ where: { id: id.data } });
+  revalidatePath("/admin/content/showcase");
+  revalidatePath("/");
+}
+
+export async function moveShowcaseProductAction(formData: FormData): Promise<void> {
+  const _actor = await requireRole("EDITOR");
+  if (!_actor) return;
+
+  const id = z.uuid().safeParse(formData.get("id"));
+  const direction = z.enum(["up", "down"]).safeParse(formData.get("direction"));
+  if (!id.success || !direction.success) return;
+
+  const items = await prisma.showcaseProduct.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
+  const index = items.findIndex((item) => item.id === id.data);
+  if (index === -1) return;
+
+  const swapIndex = direction.data === "up" ? index - 1 : index + 1;
+  if (swapIndex < 0 || swapIndex >= items.length) return;
+
+  const reordered = [...items];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+
+  // Tüm listeyi yeniden indeksle (sortOrder eşitliklerini de düzeltir).
+  await prisma.$transaction(
+    reordered.map((item, i) =>
+      prisma.showcaseProduct.update({ where: { id: item.id }, data: { sortOrder: i } }),
+    ),
+  );
+
+  revalidatePath("/admin/content/showcase");
+  revalidatePath("/");
+}

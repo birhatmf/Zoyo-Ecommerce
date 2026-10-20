@@ -23,3 +23,27 @@ export function toProductCardData(product: WithImages) {
     coverImage: cover ? { url: cover.url, altText: cover.altText } : null,
   };
 }
+
+type WithShowcase = WithImages & {
+  shortDescription: string | null;
+  categories: { name: string; slug: string }[];
+};
+
+export function toShowcaseData(product: WithShowcase) {
+  const cover = getCoverImage(product);
+  return {
+    slug: product.slug,
+    name: product.name,
+    shortDescription: product.shortDescription,
+    price: String(product.price),
+    discountPrice:
+      product.discountPrice !== null && product.discountPrice !== undefined
+        ? String(product.discountPrice)
+        : null,
+    coverImage: cover ? { url: cover.url, altText: cover.altText } : null,
+    categories: product.categories.map((category) => ({
+      name: category.name,
+      slug: category.slug,
+    })),
+  };
+}
