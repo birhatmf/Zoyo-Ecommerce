@@ -14,9 +14,11 @@ export type ProductCardData = {
 export function ProductCard({
   product,
   priority,
+  headingLevel = "h3",
 }: {
   product: ProductCardData;
   priority?: boolean;
+  headingLevel?: "h2" | "h3";
 }) {
   const discount =
     product.discountPrice !== null &&
@@ -25,9 +27,13 @@ export function ProductCard({
       ? product.discountPrice
       : null;
   const percent = discount ? discountPercent(product.price, discount) : null;
+  const Heading = headingLevel;
 
   return (
-    <Link href={`/urun/${product.slug}`} className="group block">
+    <Link
+      href={`/urun/${product.slug}`}
+      className="group block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+    >
       <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted">
         <SmartImage
           src={product.coverImage?.url}
@@ -38,7 +44,7 @@ export function ProductCard({
         />
       </div>
       <div className="pt-3.5">
-        <h3 className="text-sm font-medium text-foreground">{product.name}</h3>
+        <Heading className="text-sm font-medium text-foreground">{product.name}</Heading>
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           {discount ? (
             <>

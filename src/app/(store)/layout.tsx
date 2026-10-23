@@ -4,6 +4,7 @@ import { getSessionAdminId } from "@/lib/auth";
 import { PREVIEW_COOKIE } from "@/lib/maintenance";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
+import { getStorefrontTexts } from "@/lib/storefront-text";
 import { Footer } from "@/components/storefront/footer";
 import { Header } from "@/components/storefront/header";
 import { MaintenanceScreen } from "@/components/storefront/maintenance";
@@ -42,13 +43,24 @@ export default async function StoreLayout({
   }
 
   // Slider varsa navbar şeffaf başlar (overlay modu)
-  const slides = await getActiveHeroSlides();
+  const [slides, texts] = await Promise.all([
+    getActiveHeroSlides(),
+    getStorefrontTexts(),
+  ]);
 
   return (
     <div className="flex min-h-svh flex-col">
       {maintenance && <PreviewBanner />}
+      <a
+        href="#ana-icerik"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+      >
+        {texts["common.skipToContent"]}
+      </a>
       <Header overlay={slides.length > 0} />
-      <main className="flex-1">{children}</main>
+      <main id="ana-icerik" className="flex-1">
+        {children}
+      </main>
       <Footer />
       {settings.whatsapp && (
         <WhatsappFloat

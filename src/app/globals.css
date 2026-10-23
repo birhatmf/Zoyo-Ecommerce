@@ -127,6 +127,10 @@
   html {
     @apply font-sans;
   }
+  /* Sticky header (64px) çapa hedeflerini kapatmasın */
+  [id] {
+    scroll-margin-top: 5rem;
+  }
 }
 
 /* Hero slider animasyonları */

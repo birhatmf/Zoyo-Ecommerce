@@ -16,4 +16,5 @@
 - For larger, multi-step features wants a written plan produced and approved first (uses plan mode / "/plan şimdi bir şey yapma"), then explicitly says to implement it ("planı uygula") — no changes until the plan is signed off. Confidence: 0.7
 - Values polished, editorial-quality, animated design over plain layouts (e.g. full-width alternating product rows with scroll-reveal animation instead of a simple grid/category block). Confidence: 0.6
 - The agent runs on a VPS with no browser available; expects it not to attempt browser automation/visual verification and will check the UI himself — the agent should instead audit/strengthen the code end-to-end. Confidence: 0.75
+- For solution planning, wants several distinct options laid out (e.g. "4 farklı seçenek sun") with their trade-offs/effort so he can pick, rather than a single recommended approach. Confidence: 0.6
 - Expects admin forms to be interactive with instant feedback before submitting (e.g. image uploads preview immediately without pressing Save, drag/arrow reordering, star-to-pick-cover) rather than deferring everything to the save action. Confidence: 0.6

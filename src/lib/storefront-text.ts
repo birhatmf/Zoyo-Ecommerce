@@ -43,6 +43,15 @@ export const STOREFRONT_TEXT_DEFS: StorefrontTextDef[] = [
   { key: "homepage.featuredHeading", group: "homepage", label: "Öne çıkan ürünler başlığı", defaultValue: "Öne Çıkan Ürünler" },
   { key: "homepage.viewAll", group: "homepage", label: "Tümünü gör linki", defaultValue: "Tümünü Gör" },
   { key: "homepage.allProducts", group: "homepage", label: "Tüm ürünler linki", defaultValue: "Tüm Ürünler" },
+  { key: "homepage.showcaseHeading", group: "homepage", label: "Vitrin bölümü başlığı", defaultValue: "Vitrin" },
+  { key: "homepage.trust1Title", group: "homepage", label: "Avantaj 1 başlığı", defaultValue: "El İşçiliği" },
+  { key: "homepage.trust1Desc", group: "homepage", label: "Avantaj 1 açıklaması", defaultValue: "Her parça atölyemizde tek tek üretilir." },
+  { key: "homepage.trust2Title", group: "homepage", label: "Avantaj 2 başlığı", defaultValue: "Ücretsiz Keşif" },
+  { key: "homepage.trust2Desc", group: "homepage", label: "Avantaj 2 açıklaması", defaultValue: "Ölçü ve tasarım desteği ücretsizdir." },
+  { key: "homepage.trust3Title", group: "homepage", label: "Avantaj 3 başlığı", defaultValue: "Güvenli Teslimat" },
+  { key: "homepage.trust3Desc", group: "homepage", label: "Avantaj 3 açıklaması", defaultValue: "Türkiye genelinde sigortalı sevkiyat." },
+  { key: "homepage.trust4Title", group: "homepage", label: "Avantaj 4 başlığı", defaultValue: "2 Yıl Garanti" },
+  { key: "homepage.trust4Desc", group: "homepage", label: "Avantaj 4 açıklaması", defaultValue: "Üretim hatalarına karşı garanti." },
 
   // cart
   { key: "cart.emptyTitle", group: "cart", label: "Boş sepet başlığı", defaultValue: "Sepetiniz boş" },
@@ -84,6 +93,9 @@ export const STOREFRONT_TEXT_DEFS: StorefrontTextDef[] = [
   { key: "orderSuccess.whatsapp", group: "orderSuccess", label: "WhatsApp butonu", defaultValue: "WhatsApp ile Gönder" },
   { key: "orderSuccess.call", group: "orderSuccess", label: "Telefon butonu", defaultValue: "Telefonla Ara" },
   { key: "orderSuccess.continue", group: "orderSuccess", label: "Alışverişe devam linki", defaultValue: "Alışverişe devam et" },
+
+  // common
+  { key: "common.skipToContent", group: "common", label: "İçeriğe geç linki (a11y)", defaultValue: "İçeriğe geç" },
 ] as const;
 
 export type StorefrontTextKey = (typeof STOREFRONT_TEXT_DEFS)[number]["key"];

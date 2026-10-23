@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 export type HeroSlideData = {
   id: string;
@@ -20,8 +20,9 @@ const AUTOPLAY_MS = 6000;
 export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // Kullanıcının açıkça durdurduğu durum (hover/focus'tan bağımsız).
+  const [userPaused, setUserPaused] = useState(false);
   const reducedMotion = useRef(false);
-  const sectionRef = useRef<HTMLElement>(null);
 
   const count = slides.length;
   const go = useCallback(
@@ -40,7 +41,7 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
   }, []);
 
   useEffect(() => {
-    if (count < 2 || paused || reducedMotion.current) return;
+    if (count < 2 || paused || userPaused || reducedMotion.current) return;
 
     // Sekme arka plandayken zamanlayıcı birikmesin
     const timer = setTimeout(() => go(index + 1), AUTOPLAY_MS);
@@ -53,7 +54,7 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
       if (timer) clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [index, paused, count, go]);
+  }, [index, paused, userPaused, count, go]);
 
   // Klavye ile gezinme (yalnızca slider odaktayken)
   function onKeyDown(event: React.KeyboardEvent) {
@@ -63,7 +64,6 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
 
   return (
     <section
-      ref={sectionRef}
       aria-roledescription="carousel"
       aria-label="Öne çıkanlar"
       tabIndex={-1}
@@ -72,7 +72,7 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className="relative h-[72svh] min-h-[440px] w-full overflow-hidden bg-primary outline-none sm:h-[78svh]"
+      className="relative h-[72svh] min-h-[440px] w-full overflow-hidden bg-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-visible:outline-none sm:h-[78svh]"
     >
       {/* Slaytlar */}
       {slides.map((slide, i) => {
@@ -144,7 +144,7 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
             aria-label="Önceki slayt"
             className="absolute top-1/2 left-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background backdrop-blur-sm transition-colors hover:bg-primary/60 focus-visible:ring-2 focus-visible:ring-accent sm:left-5"
           >
-            <ChevronLeft className="size-5" />
+            <ChevronLeft aria-hidden="true" className="size-5" />
           </button>
           <button
             type="button"
@@ -152,10 +152,10 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
             aria-label="Sonraki slayt"
             className="absolute top-1/2 right-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/25 bg-primary/40 text-background backdrop-blur-sm transition-colors hover:bg-primary/60 focus-visible:ring-2 focus-visible:ring-accent sm:right-5"
           >
-            <ChevronRight className="size-5" />
+            <ChevronRight aria-hidden="true" className="size-5" />
           </button>
 
-          <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2.5">
+          <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5">
             {slides.map((slide, i) => (
               <button
                 key={`dot-${slide.id}`}
@@ -163,13 +163,33 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
                 onClick={() => go(i)}
                 aria-label={`${i + 1}. slayta git`}
                 aria-current={i === index}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  i === index
-                    ? "w-8 bg-accent"
-                    : "w-3 bg-background/40 hover:bg-background/70"
-                }`}
-              />
+                className="group/dot flex min-h-11 items-center px-1"
+              >
+                <span
+                  className={`block h-1.5 rounded-full transition-[width,background-color] duration-500 ${
+                    i === index
+                      ? "w-8 bg-accent"
+                      : "w-3 bg-background/40 group-hover/dot:bg-background/70"
+                  }`}
+                />
+              </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setUserPaused((value) => !value)}
+              aria-label={
+                userPaused
+                  ? "Otomatik oynatmayı başlat"
+                  : "Otomatik oynatmayı duraklat"
+              }
+              className="ml-2 flex size-11 items-center justify-center rounded-full text-background/80 transition-colors hover:bg-background/10 hover:text-background focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              {userPaused ? (
+                <Play aria-hidden="true" className="size-4" />
+              ) : (
+                <Pause aria-hidden="true" className="size-4" />
+              )}
+            </button>
           </div>
         </>
       )}

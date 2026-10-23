@@ -58,6 +58,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               key={product.id}
               product={toProductCardData(product)}
               priority={index < 4}
+              headingLevel="h2"
             />
           ))}
         </div>

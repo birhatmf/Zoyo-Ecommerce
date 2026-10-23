@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 
+import { CategoriesSection } from "@/components/storefront/categories-section";
 import { HeroSlider } from "@/components/storefront/hero-slider";
+import {
+  FeaturedProductsSection,
+  ProductsFallbackSection,
+} from "@/components/storefront/product-grid-section";
 import { ShowcaseSection } from "@/components/storefront/showcase-section";
 import { SmartImage } from "@/components/storefront/smart-image";
+import { TrustBar } from "@/components/storefront/trust-bar";
 import { whatsappUrl } from "@/lib/format";
 import { getSiteSettings } from "@/lib/settings";
 import { getStorefrontTexts } from "@/lib/storefront-text";
+import { safeJsonLd } from "@/lib/utils";
 import {
   getActiveHeroSlides,
   getHomepageContent,
@@ -27,8 +34,43 @@ export default async function HomePage() {
       )
     : null;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteName = settings.siteName || "Zoyo Mobilya";
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: siteName,
+        ...(siteUrl ? { url: siteUrl } : {}),
+        ...(settings.logoUrl ? { logo: settings.logoUrl } : {}),
+        ...(settings.phone || settings.email
+          ? {
+              contactPoint: [
+                {
+                  "@type": "ContactPoint",
+                  contactType: "customer service",
+                  ...(settings.phone ? { telephone: settings.phone } : {}),
+                  ...(settings.email ? { email: settings.email } : {}),
+                },
+              ],
+            }
+          : {}),
+      },
+      {
+        "@type": "WebSite",
+        name: siteName,
+        ...(siteUrl ? { url: siteUrl } : {}),
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(structuredData) }}
+      />
       {/* Hero — slider varsa heroActive'ten bağımsız gösterilir;
           heroActive yalnızca klasik hero bölümünü kontrol eder */}
       {slides.length > 0 ? (
@@ -103,8 +145,20 @@ export default async function HomePage() {
         )
       )}
 
+      {/* Güven/avantaj şeridi */}
+      <TrustBar texts={texts} />
+
+      {/* Kategoriler */}
+      <CategoriesSection />
+
+      {/* Öne çıkan ürünler */}
+      <FeaturedProductsSection />
+
       {/* Vitrin — admin'in seçtiği ürünler (tam genişlik, dönüşümlü, animasyonlu) */}
       <ShowcaseSection />
+
+      {/* Vitrin ve öne çıkanlar boşsa sayfa boş kalmasın: tüm ürünler */}
+      <ProductsFallbackSection />
 
       {/* Marka / üretim hikâyesi */}
       {(content?.storyTitle || content?.storyDescription) && (
