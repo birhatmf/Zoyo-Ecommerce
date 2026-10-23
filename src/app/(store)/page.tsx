@@ -2,11 +2,14 @@ import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 
 import { CategoriesSection } from "@/components/storefront/categories-section";
+import { FaqSection } from "@/components/storefront/faq-section";
 import { HeroSlider } from "@/components/storefront/hero-slider";
 import {
+  DiscountedProductsSection,
   FeaturedProductsSection,
-  ProductsFallbackSection,
+  NewestProductsSection,
 } from "@/components/storefront/product-grid-section";
+import { ProcessSection } from "@/components/storefront/process-section";
 import { ShowcaseSection } from "@/components/storefront/showcase-section";
 import { SmartImage } from "@/components/storefront/smart-image";
 import { TrustBar } from "@/components/storefront/trust-bar";
@@ -148,17 +151,26 @@ export default async function HomePage() {
       {/* Güven/avantaj şeridi */}
       <TrustBar texts={texts} />
 
+      {/* Öne çıkan ürünler */}
+      <FeaturedProductsSection />
+
       {/* Kategoriler */}
       <CategoriesSection />
 
-      {/* Öne çıkan ürünler */}
-      <FeaturedProductsSection />
+      {/* İndirimli ürünler */}
+      <DiscountedProductsSection />
+
+      {/* Yeni gelenler */}
+      <NewestProductsSection />
 
       {/* Vitrin — admin'in seçtiği ürünler (tam genişlik, dönüşümlü, animasyonlu) */}
       <ShowcaseSection />
 
-      {/* Vitrin ve öne çıkanlar boşsa sayfa boş kalmasın: tüm ürünler */}
-      <ProductsFallbackSection />
+      {/* Nasıl üretiyoruz */}
+      <ProcessSection />
+
+      {/* Sıkça sorulan sorular */}
+      <FaqSection />
 
       {/* Marka / üretim hikâyesi */}
       {(content?.storyTitle || content?.storyDescription) && (

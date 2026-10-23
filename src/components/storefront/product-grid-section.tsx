@@ -5,20 +5,23 @@ import { ProductCard, type ProductCardData } from "@/components/storefront/produ
 import { toProductCardData } from "@/lib/product";
 import { getStorefrontTexts } from "@/lib/storefront-text";
 import {
-  getActiveProducts,
+  getDiscountedProducts,
   getFeaturedProducts,
-  getShowcaseProducts,
+  getNewestProducts,
 } from "@/services/catalog.service";
 
 // Sunumsal ürün ızgarası: başlık + "tümü" linki + ProductCard grid.
+// priorityCount: yalnızca ekranın üstünde kalan kartlar önceliklendirilir.
 function ProductGridSection({
   heading,
   linkLabel,
   products,
+  priorityCount = 0,
 }: {
   heading: string;
   linkLabel: string;
   products: ProductCardData[];
+  priorityCount?: number;
 }) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
@@ -42,7 +45,7 @@ function ProductGridSection({
           <ProductCard
             key={product.slug}
             product={product}
-            priority={index < 4}
+            priority={index < priorityCount}
             headingLevel="h3"
           />
         ))}
@@ -51,7 +54,7 @@ function ProductGridSection({
   );
 }
 
-// Admin'in "öne çıkar" olarak işaretlediği ürünler.
+// Admin'in "öne çıkar" olarak işaretlediği ürünler (sayfanın ilk ürün bölümü).
 export async function FeaturedProductsSection() {
   const [products, texts] = await Promise.all([
     getFeaturedProducts(),
@@ -65,29 +68,41 @@ export async function FeaturedProductsSection() {
       heading={texts["homepage.featuredHeading"]}
       linkLabel={texts["homepage.allProducts"]}
       products={products.map(toProductCardData)}
+      priorityCount={4}
     />
   );
 }
 
-// Vitrin ve öne çıkanlar boşsa sayfanın boş kalmaması için tüm ürünleri gösterir.
-export async function ProductsFallbackSection() {
-  const [showcase, featured] = await Promise.all([
-    getShowcaseProducts(1),
-    getFeaturedProducts(),
-  ]);
-  if (showcase.length > 0 || featured.length > 0) return null;
-
+export async function DiscountedProductsSection() {
   const [products, texts] = await Promise.all([
-    getActiveProducts(),
+    getDiscountedProducts(4),
     getStorefrontTexts(),
   ]);
+
   if (products.length === 0) return null;
 
   return (
     <ProductGridSection
-      heading={texts["homepage.allProducts"]}
-      linkLabel={texts["homepage.viewAll"]}
-      products={products.slice(0, 8).map(toProductCardData)}
+      heading={texts["homepage.discountsHeading"]}
+      linkLabel={texts["homepage.allProducts"]}
+      products={products.map(toProductCardData)}
+    />
+  );
+}
+
+export async function NewestProductsSection() {
+  const [products, texts] = await Promise.all([
+    getNewestProducts(8),
+    getStorefrontTexts(),
+  ]);
+
+  if (products.length === 0) return null;
+
+  return (
+    <ProductGridSection
+      heading={texts["homepage.newestHeading"]}
+      linkLabel={texts["homepage.allProducts"]}
+      products={products.map(toProductCardData)}
     />
   );
 }

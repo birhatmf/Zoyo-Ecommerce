@@ -60,3 +60,31 @@ export async function getShowcaseProducts(limit = 4) {
   });
   return items.map((item) => item.product);
 }
+
+// İndirimli fiyatı normal fiyatından küçük olan aktif ürünler.
+// discountPrice ile price kolon karşılaştırması Prisma'da doğrudan
+// yapılamadığı için eşleşenler JS tarafında filtrelenir.
+export async function getDiscountedProducts(limit = 4) {
+  const products = await prisma.product.findMany({
+    where: { status: "ACTIVE", discountPrice: { not: null } },
+    include: productInclude,
+    orderBy: { updatedAt: "desc" },
+  });
+  return products
+    .filter(
+      (product) =>
+        product.discountPrice !== null &&
+        Number(product.discountPrice) > 0 &&
+        Number(product.discountPrice) < Number(product.price),
+    )
+    .slice(0, limit);
+}
+
+export async function getNewestProducts(limit = 8) {
+  return prisma.product.findMany({
+    where: { status: "ACTIVE" },
+    include: productInclude,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
