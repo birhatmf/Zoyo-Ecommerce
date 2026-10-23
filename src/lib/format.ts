@@ -11,6 +11,22 @@ export function formatPrice(
   return currencyFormatter.format(Number(value));
 }
 
+// İndirim yüzdesi: yalnızca discountPrice geçerli (0'dan büyük ve price'tan
+// küçük) olduğunda tam sayı yüzde döner, aksi halde null. Görünür bir indirim
+// oluşmayan (%1 altı) durumlarda da null döner.
+export function discountPercent(
+  price: string | number | { toString(): string },
+  discountPrice: string | number | { toString(): string } | null | undefined,
+): number | null {
+  if (discountPrice === null || discountPrice === undefined) return null;
+  const base = Number(price);
+  const discounted = Number(discountPrice);
+  if (!Number.isFinite(base) || !Number.isFinite(discounted)) return null;
+  if (base <= 0 || discounted <= 0 || discounted >= base) return null;
+  const percent = Math.floor(((base - discounted) / base) * 100);
+  return percent >= 1 ? percent : null;
+}
+
 export function whatsappUrl(phone: string, message: string): string {
   const normalized = phone.replace(/[^\d]/g, "");
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { SmartImage } from "@/components/storefront/smart-image";
-import { formatPrice } from "@/lib/format";
+import { discountPercent, formatPrice } from "@/lib/format";
 
 export type ShowcaseData = {
   slug: string;
@@ -51,6 +51,7 @@ export function ShowcaseRow({
     Number(product.discountPrice) < Number(product.price)
       ? product.discountPrice
       : null;
+  const percent = discount ? discountPercent(product.price, discount) : null;
 
   const imageFirst = index % 2 === 0;
 
@@ -91,9 +92,14 @@ export function ShowcaseRow({
           </p>
         )}
 
-        <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
           {discount ? (
             <>
+              {percent !== null && (
+                <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                  -%{percent}
+                </span>
+              )}
               <span className="font-heading text-2xl font-medium text-accent">
                 {formatPrice(discount)}
               </span>

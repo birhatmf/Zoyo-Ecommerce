@@ -153,25 +153,9 @@ export async function saveProductAction(
       metadata: { status: input.status },
     });
 
-    // Form ile seçilen görseller (yeni üründe de yüklenebilsin)
-    const files = formData
-      .getAll("images")
-      .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    if (files.length > 0) {
-      const existing = await prisma.productImage.count({ where: { productId } });
-      for (const [index, file] of files.entries()) {
-        const result = await saveImage(file);
-        if (!result.ok) continue;
-        await prisma.productImage.create({
-          data: {
-            productId,
-            url: result.url,
-            sortOrder: existing + index,
-            isCover: existing === 0 && index === 0,
-          },
-        });
-      }
-    }
+    // Görseller: silme, sıralama, kapak ve yeni dosya/URL ekleme işlemleri
+    // form ile gönderilen plana göre tek seferde uygulanır.
+    await applyProductImagePlan(productId, formData);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("products_slug_key")) {
@@ -274,173 +258,154 @@ export async function bulkProductAction(formData: FormData): Promise<void> {
 
 // ---------- Ürün görselleri ----------
 
-const imageActionSchema = z.object({
-  productId: z.string().uuid(),
-  imageId: z.string().uuid(),
-});
+const productImagePlanEntrySchema = z.discriminatedUnion("t", [
+  z.object({ t: z.literal("e"), id: z.string().uuid(), alt: z.string().max(255).default("") }),
+  z.object({ t: z.literal("n"), alt: z.string().max(255).default("") }),
+  z.object({ t: z.literal("u"), url: mediaRefSchema, alt: z.string().max(255).default("") }),
+]);
 
-// Göreli yol (/api/media/x.png) veya allowlist'teki bir tam http(s) adresi
-const mediaRef = mediaRefSchema;
+const productImagePlanSchema = z.array(productImagePlanEntrySchema).max(100);
 
-// Dosyaları yükler ve ürüne ekler; çoklu seçim destekler
-export async function uploadProductImageAction(formData: FormData): Promise<void> {
-  const _imgAdmin = await requireRole("EDITOR");
-  if (!_imgAdmin) return;
+// Formdan gelen gizli görsel meta alanlarını (plan / silinecekler / kapak) çözer.
+function parseProductImageMeta(formData: FormData) {
+  const planRaw = formData.get("imagePlan");
+  let plan: z.infer<typeof productImagePlanEntrySchema>[] = [];
+  if (typeof planRaw === "string" && planRaw.trim()) {
+    try {
+      const parsed = productImagePlanSchema.safeParse(JSON.parse(planRaw));
+      if (parsed.success) plan = parsed.data;
+    } catch {
+      // Geçersiz JSON → plan yok sayılır.
+    }
+  }
 
-  const productId = z.string().uuid().safeParse(formData.get("productId"));
-  const files = [
-    ...formData.getAll("files"),
-    ...formData.getAll("file"),
-  ].filter((entry): entry is File => entry instanceof File && entry.size > 0);
-  if (!productId.success || files.length === 0) {
+  const removeRaw = formData.get("removeImageIds");
+  let removeIds: string[] = [];
+  if (typeof removeRaw === "string" && removeRaw.trim()) {
+    try {
+      const parsed = z
+        .array(z.string().uuid())
+        .max(100)
+        .safeParse(JSON.parse(removeRaw));
+      if (parsed.success) removeIds = parsed.data;
+    } catch {
+      // Geçersiz JSON → yok sayılır.
+    }
+  }
+
+  const coverRaw = formData.get("coverIndex");
+  const parsedCover = typeof coverRaw === "string" ? Number(coverRaw) : -1;
+
+  return {
+    plan,
+    removeIds,
+    coverIndex: Number.isInteger(parsedCover) ? parsedCover : -1,
+  };
+}
+
+// Görselleri plana göre uygular: silme, sıralama, kapak, yeni dosya ve URL.
+// Görsel planı gönderilmezse (JS'siz kullanım) dosyalar sırayla eklenir.
+async function applyProductImagePlan(productId: string, formData: FormData) {
+  const { plan, removeIds, coverIndex } = parseProductImageMeta(formData);
+  const files = formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
+  if (removeIds.length > 0) {
+    await prisma.productImage.deleteMany({
+      where: { id: { in: removeIds }, productId },
+    });
+  }
+
+  if (plan.length === 0 && files.length > 0) {
+    const existing = await prisma.productImage.count({ where: { productId } });
+    for (const [index, file] of files.entries()) {
+      const saved = await saveImage(file);
+      if (!saved.ok) continue;
+      await prisma.productImage.create({
+        data: {
+          productId,
+          url: saved.url,
+          sortOrder: existing + index,
+          isCover: existing === 0 && index === 0,
+        },
+      });
+    }
     return;
   }
 
-  let existing = await prisma.productImage.count({
-    where: { productId: productId.data },
-  });
+  let fileIndex = 0;
+  let position = 0;
 
-  for (const file of files) {
-    const result = await saveImage(file);
-    if (!result.ok) continue;
-    await prisma.productImage.create({
-      data: {
-        productId: productId.data,
-        url: result.url,
-        sortOrder: existing,
-        isCover: existing === 0,
-      },
-    });
-    existing += 1;
-  }
-
-  revalidatePath(`/admin/products/${productId.data}`);
-}
-
-export async function setCoverImageAction(formData: FormData): Promise<void> {
-  const _imgAdmin = await requireRole("EDITOR");
-  if (!_imgAdmin) return;
-  const parsed = imageActionSchema.safeParse({
-    productId: formData.get("productId"),
-    imageId: formData.get("imageId"),
-  });
-  if (!parsed.success) return;
-
-  const { productId, imageId } = parsed.data;
-
-  // IDOR koruması: görsel gerçekten bu ürüne ait olmalı.
-  const image = await prisma.productImage.findUnique({
-    where: { id: imageId },
-    select: { productId: true },
-  });
-  if (!image || image.productId !== productId) return;
-
-  await prisma.$transaction([
-    prisma.productImage.updateMany({
-      where: { productId },
-      data: { isCover: false },
-    }),
-    prisma.productImage.update({
-      where: { id: imageId },
-      data: { isCover: true },
-    }),
-  ]);
-
-  revalidatePath(`/admin/products/${productId}`);
-}
-
-export async function updateImageMetaAction(formData: FormData): Promise<void> {
-  const _imgAdmin = await requireRole("EDITOR");
-  if (!_imgAdmin) return;
-
-  const productId = z.string().uuid().safeParse(formData.get("productId"));
-  if (!productId.success) return;
-
-  const updates = [];
-  for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("order-")) continue;
-    const imageId = key.replace("order-", "");
-    const sortOrder = Number(value);
-    if (
-      !z.string().uuid().safeParse(imageId).success ||
-      !Number.isInteger(sortOrder) ||
-      sortOrder < 0 ||
-      sortOrder > 999
-    ) {
+  for (const entry of plan) {
+    if (entry.t === "e") {
+      // IDOR koruması: yalnızca bu ürüne ait görseller güncellenir.
+      const result = await prisma.productImage.updateMany({
+        where: { id: entry.id, productId },
+        data: {
+          altText: entry.alt || null,
+          sortOrder: position,
+          isCover: position === coverIndex,
+        },
+      });
+      if (result.count > 0) position += 1;
       continue;
     }
-    const altValue = formData.get(`alt-${imageId}`);
-    const altText =
-      typeof altValue === "string" && altValue.trim() ? altValue.trim() : null;
 
-    updates.push(
-      prisma.productImage.updateMany({
-        where: { id: imageId, productId: productId.data },
-        data: { sortOrder, altText },
-      }),
-    );
-  }
-
-  if (updates.length > 0) {
-    await prisma.$transaction(updates);
-  }
-  revalidatePath(`/admin/products/${productId.data}`);
-}
-
-export async function addImageUrlAction(formData: FormData): Promise<void> {
-  const _imgAdmin = await requireRole("EDITOR");
-  if (!_imgAdmin) return;
-  const schema = z.object({
-    productId: z.string().uuid(),
-    url: mediaRef,
-    altText: z.string().trim().max(255).optional().or(z.literal("")),
-  });
-  const parsed = schema.safeParse({
-    productId: formData.get("productId"),
-    url: formData.get("url"),
-    altText: formData.get("altText") ?? "",
-  });
-  if (!parsed.success) return;
-
-  const existing = await prisma.productImage.count({ where: { productId: parsed.data.productId } });
-  const isOnlyImage = existing === 0;
-
-  await prisma.productImage.create({
-    data: {
-      productId: parsed.data.productId,
-      url: parsed.data.url,
-      altText: parsed.data.altText || null,
-      sortOrder: existing,
-      isCover: isOnlyImage,
-    },
-  });
-
-  revalidatePath(`/admin/products/${parsed.data.productId}`);
-}
-
-export async function deleteImageAction(formData: FormData): Promise<void> {
-  const _imgAdmin = await requireRole("EDITOR");
-  if (!_imgAdmin) return;
-  const parsed = imageActionSchema.safeParse({
-    productId: formData.get("productId"),
-    imageId: formData.get("imageId"),
-  });
-  if (!parsed.success) return;
-
-  const image = await prisma.productImage.findUnique({ where: { id: parsed.data.imageId } });
-  if (!image || image.productId !== parsed.data.productId) return;
-
-  await prisma.productImage.delete({ where: { id: image.id } });
-
-  if (image.isCover) {
-    const next = await prisma.productImage.findFirst({
-      where: { productId: parsed.data.productId },
-      orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }],
-    });
-    if (next) {
-      await prisma.productImage.update({ where: { id: next.id }, data: { isCover: true } });
+    if (entry.t === "n") {
+      const file = files[fileIndex];
+      fileIndex += 1;
+      if (!file) continue;
+      const saved = await saveImage(file);
+      if (!saved.ok) continue;
+      await prisma.productImage.create({
+        data: {
+          productId,
+          url: saved.url,
+          altText: entry.alt || null,
+          sortOrder: position,
+          isCover: position === coverIndex,
+        },
+      });
+      position += 1;
+      continue;
     }
+
+    await prisma.productImage.create({
+      data: {
+        productId,
+        url: entry.url,
+        altText: entry.alt || null,
+        sortOrder: position,
+        isCover: position === coverIndex,
+      },
+    });
+    position += 1;
   }
 
-  revalidatePath(`/admin/products/${parsed.data.productId}`);
+  // Kapak garantisi: hiç kapak yoksa ilk görsel kapak yapılır; birden fazla
+  // kapak kaldıysa yalnızca en baştaki bırakılır.
+  const covers = await prisma.productImage.findMany({
+    where: { productId, isCover: true },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true },
+  });
+  if (covers.length === 0) {
+    const first = await prisma.productImage.findFirst({
+      where: { productId },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true },
+    });
+    if (first) {
+      await prisma.productImage.update({
+        where: { id: first.id },
+        data: { isCover: true },
+      });
+    }
+  } else if (covers.length > 1) {
+    await prisma.productImage.updateMany({
+      where: { productId, isCover: true, id: { not: covers[0].id } },
+      data: { isCover: false },
+    });
+  }
 }

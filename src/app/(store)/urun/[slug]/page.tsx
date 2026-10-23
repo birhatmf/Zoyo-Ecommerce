@@ -6,7 +6,7 @@ import { ChevronRight, MessageCircle } from "lucide-react";
 import { AddToCart } from "@/components/storefront/add-to-cart";
 import { MobileActionBar } from "@/components/storefront/mobile-action-bar";
 import { ProductGallery } from "@/components/storefront/product-gallery";
-import { formatPrice, whatsappUrl } from "@/lib/format";
+import { discountPercent, formatPrice, whatsappUrl } from "@/lib/format";
 import { getSiteSettings } from "@/lib/settings";
 import { safeJsonLd } from "@/lib/utils";
 import { getProductBySlug } from "@/services/catalog.service";
@@ -49,6 +49,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     Number(product.discountPrice) < Number(product.price)
       ? product.discountPrice
       : null;
+  const percent = discountPercent(product.price, discountPrice);
 
   const waLink = settings.whatsapp
     ? whatsappUrl(
@@ -156,9 +157,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <span className="text-lg text-muted-foreground line-through">
                   {formatPrice(product.price)}
                 </span>
-                <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
-                  İndirimli
-                </span>
+                {percent !== null && (
+                  <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+                    %{percent} İndirim
+                  </span>
+                )}
               </>
             ) : (
               <span className="font-heading text-3xl font-medium">

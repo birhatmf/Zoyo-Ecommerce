@@ -6,3 +6,14 @@
 - Appreciates severity-prioritized findings (e.g., 🔴 high / 🟠 medium / 🟡 low tiers) with concrete file paths and line numbers. Confidence: 0.8
 - Values a "good practices" / "iyi yapılmış" section alongside issues — wants balanced feedback, not just criticism. Confidence: 0.75
 - Wants actionable recommendations with effort estimates (e.g., "5 dk", "30 dk") so fixes can be triaged. Confidence: 0.75
+- Works against a live production app: after code changes, expects a production build followed by a process restart (e.g. `pnpm build` + `pm2 restart`) as part of the same task, not just an edit. Confidence: 0.75
+- Communicates bluntly and informally in Turkish, often rudely/profanely when frustrated ("lan öyle değil", "sik gibi duruyor"); expects the agent to stay calm and professional and focus on fixing the issue. Confidence: 0.6
+- Rejects literal/visual workarounds (e.g. a white background box behind a logo) when they clash with the intended design; wants the fix that matches the design system (e.g. rendering the logo white via a CSS filter so it matches the white nav text in transparent header mode). Confidence: 0.65
+- When an applied change is wrong, expects it to be fully reverted to the previous state and a genuinely different solution tried, rather than patched on top. Confidence: 0.6
+- Before starting new changes, wants the current state committed and pushed to GitHub as a version checkpoint ("önce githuba pushla gitde versionumuz olsun sonra değişiklikler yap"). Confidence: 0.7
+- Prefers site behavior to be admin-panel-configurable rather than hardcoded (e.g. maintenance mode toggle, footer/logo size) so it can be changed without a code deploy. Confidence: 0.7
+- Wants the storefront to be more interactive: clickable/tappable contact elements (e-mail → mailto, address → opens Google Maps, phone → tel, WhatsApp) and always-visible floating widgets like a WhatsApp popup button. Confidence: 0.6
+- For larger, multi-step features wants a written plan produced and approved first (uses plan mode / "/plan şimdi bir şey yapma"), then explicitly says to implement it ("planı uygula") — no changes until the plan is signed off. Confidence: 0.7
+- Values polished, editorial-quality, animated design over plain layouts (e.g. full-width alternating product rows with scroll-reveal animation instead of a simple grid/category block). Confidence: 0.6
+- The agent runs on a VPS with no browser available; expects it not to attempt browser automation/visual verification and will check the UI himself — the agent should instead audit/strengthen the code end-to-end. Confidence: 0.75
+- Expects admin forms to be interactive with instant feedback before submitting (e.g. image uploads preview immediately without pressing Save, drag/arrow reordering, star-to-pick-cover) rather than deferring everything to the save action. Confidence: 0.6
