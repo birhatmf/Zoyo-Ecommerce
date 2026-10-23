@@ -10,8 +10,15 @@ export function getCoverImage(product: WithImages) {
   return product.images.find((image) => image.isCover) ?? product.images[0] ?? null;
 }
 
+// Kart hover'ında gösterilecek ikinci görsel (kapak dışındaki ilk görsel).
+export function getHoverImage(product: WithImages) {
+  const cover = getCoverImage(product);
+  return product.images.find((image) => image !== cover) ?? null;
+}
+
 export function toProductCardData(product: WithImages) {
   const cover = getCoverImage(product);
+  const hover = getHoverImage(product);
   return {
     slug: product.slug,
     name: product.name,
@@ -21,6 +28,7 @@ export function toProductCardData(product: WithImages) {
         ? String(product.discountPrice)
         : null,
     coverImage: cover ? { url: cover.url, altText: cover.altText } : null,
+    hoverImage: hover ? { url: hover.url, altText: hover.altText } : null,
   };
 }
 

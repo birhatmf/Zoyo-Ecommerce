@@ -23,7 +23,7 @@ export function SmartImage({
     return (
       <div
         aria-hidden="true"
-        className={`flex items-center justify-center bg-muted ${className ?? ""}`}
+        className={`flex size-full items-center justify-center bg-muted ${className ?? ""}`}
       >
         <span className="font-heading text-5xl text-muted-foreground/30 select-none">
           {(fallbackLabel || alt).charAt(0).toUpperCase()}

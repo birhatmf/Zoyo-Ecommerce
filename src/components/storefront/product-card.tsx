@@ -9,6 +9,7 @@ export type ProductCardData = {
   price: string;
   discountPrice: string | null;
   coverImage: { url: string; altText: string | null } | null;
+  hoverImage: { url: string; altText: string | null } | null;
 };
 
 export function ProductCard({
@@ -35,13 +36,23 @@ export function ProductCard({
       className="group block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
       <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted">
-        <SmartImage
-          src={product.coverImage?.url}
-          alt={product.coverImage?.altText || product.name}
-          fallbackLabel={product.name}
-          priority={priority}
-          className="transition-transform duration-300 group-hover:scale-[1.03]"
-        />
+        {/* Hover'da hafif yakınlaşma; varsa ikinci görsele yumuşak geçiş */}
+        <div className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.06]">
+          <SmartImage
+            src={product.coverImage?.url}
+            alt={product.coverImage?.altText || product.name}
+            fallbackLabel={product.name}
+            priority={priority}
+          />
+          {product.hoverImage && (
+            <div className="absolute inset-0 opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100">
+              <SmartImage src={product.hoverImage.url} alt="" />
+            </div>
+          )}
+        </div>
+        <span className="pointer-events-none absolute inset-x-3 bottom-3 translate-y-2 rounded-md bg-background/95 py-2 text-center text-xs font-medium text-foreground opacity-0 shadow-sm transition-[opacity,transform] duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100">
+          Ürünü İncele
+        </span>
       </div>
       <div className="pt-3.5">
         <Heading className="text-sm font-medium text-foreground">{product.name}</Heading>
