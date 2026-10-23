@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Loader2, Upload, X } from "lucide-react";
 
 // storage.ts ile aynı limitler — kullanıcı yüklemeden önce hata görsün.
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPT = "image/jpeg,image/png,image/webp,image/avif";
 
 function isAllowedType(file: File): boolean {
@@ -46,7 +46,7 @@ export function MediaUploadButton({
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setClientError("Dosya boyutu en fazla 5MB olabilir");
+      setClientError("Dosya boyutu en fazla 10MB olabilir");
       event.target.value = "";
       return;
     }

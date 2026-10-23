@@ -146,7 +146,14 @@ export async function uploadSettingImageAction(formData: FormData): Promise<void
   }
   if (!(file instanceof File) || file.size === 0) return;
 
-  const result = await saveImage(file);
+  // OG görseli ve favicon için kaynak format korunur; WebP'yi bazı
+  // platformlar/tarayıcılar desteklemez. Diğer görseller WebP'ye çevrilir.
+  const keepOriginalFormat =
+    key.data === "seoOgImage" || key.data === "faviconUrl";
+  const result = await saveImage(
+    file,
+    keepOriginalFormat ? { format: "original" } : undefined,
+  );
   if (!result.ok) return;
 
   await prisma.siteSetting.upsert({

@@ -91,10 +91,10 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
             >
               {!active ? (
                 <div className="hero-anim-drift absolute inset-0">
-                  <SlideImage slide={slide} />
+                  <SlideImage slide={slide} priority={i === 0} />
                 </div>
               ) : (
-                <SlideImage slide={slide} />
+                <SlideImage slide={slide} priority={i === 0} />
               )}
             </div>
             {/* Okunabilirlik perdesi */}
@@ -177,13 +177,19 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
   );
 }
 
-function SlideImage({ slide }: { slide: HeroSlideData }) {
+function SlideImage({
+  slide,
+  priority,
+}: {
+  slide: HeroSlideData;
+  priority?: boolean;
+}) {
   return (
     <Image
       src={slide.imageUrl}
       alt=""
       fill
-      priority={false}
+      priority={priority}
       sizes="100vw"
       className="object-cover"
     />

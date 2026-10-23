@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import sharp from "sharp";
+
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 
@@ -14,7 +16,67 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/avif": "avif",
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// Yüklenen görseller mağazada gösterilecek şekilde normalleştirilir: EXIF yönü
+// düzeltilir, uzun kenar küçültülür ve varsayılan olarak WebP'ye çevrilir.
+// Böylece 4MB'lık orijinaller yerine genelde ~200-400KB dosyalar saklanır ve
+// kapak görselleri çok daha hızlı yüklenir.
+const MAX_DIMENSION = 1920;
+const WEBP_QUALITY = 80;
+
+export type SaveImageOptions = {
+  // "webp" (varsayılan) veya kaynak formatı koru ("original").
+  // OG görseli ve favicon için format korunur; WebP'yi bazı platformlar
+  // (ör. sosyal medya önizlemeleri) desteklemez.
+  format?: "webp" | "original";
+  maxDimension?: number;
+};
+
+type PreparedImage = { buffer: Buffer; extension: string; mimeType: string };
+
+// sharp başarısız olursa (bozuk dosya vb.) orijinali olduğu gibi saklarız;
+// yükleme akışı hiçbir zaman bu yüzden kırılmaz.
+async function prepareImage(
+  input: Buffer,
+  extension: string,
+  mimeType: string,
+  options: SaveImageOptions,
+): Promise<PreparedImage> {
+  const maxDimension = options.maxDimension ?? MAX_DIMENSION;
+  try {
+    const pipeline = sharp(input)
+      .rotate()
+      .resize({
+        width: maxDimension,
+        height: maxDimension,
+        fit: "inside",
+        withoutEnlargement: true,
+      });
+
+    if (options.format === "original") {
+      // Kaynak formatı açıkça korunur (OG görseli/favicon gibi durumlarda
+      // WebP'ye çevirmek istemeyiz).
+      const buffer =
+        extension === "png"
+          ? await pipeline.png({ compressionLevel: 9, effort: 7 }).toBuffer()
+          : extension === "webp"
+            ? await pipeline.webp({ quality: WEBP_QUALITY }).toBuffer()
+            : extension === "avif"
+              ? await pipeline.avif({ quality: 60 }).toBuffer()
+              : await pipeline
+                  .jpeg({ quality: WEBP_QUALITY, mozjpeg: true })
+                  .toBuffer();
+      return { buffer, extension, mimeType };
+    }
+
+    const buffer = await pipeline.webp({ quality: WEBP_QUALITY }).toBuffer();
+    return { buffer, extension: "webp", mimeType: "image/webp" };
+  } catch (error) {
+    console.error("Görsel optimize edilemedi, orijinal saklanıyor:", error);
+    return { buffer: input, extension, mimeType };
+  }
+}
 
 export function getMediaContentType(fileName: string): string | null {
   const extension = fileName.split(".").pop()?.toLowerCase();
@@ -43,7 +105,10 @@ export function mediaDir(): string {
 //
 // saveImage artık hem dosyayı diske yazar hem de MediaAsset kaydı oluşturur.
 // Böylece merkezi medya kütüphanesi referans sayımı yapabilir.
-export async function saveImage(file: File): Promise<
+export async function saveImage(
+  file: File,
+  options: SaveImageOptions = {},
+): Promise<
   { ok: true; url: string; fileName: string; sizeBytes: number; mimeType: string } | { ok: false; error: string }
 > {
   const extension = ALLOWED_TYPES[file.type];
@@ -51,28 +116,36 @@ export async function saveImage(file: File): Promise<
     return { ok: false, error: "Desteklenmeyen dosya türü (JPEG, PNG, WebP, AVIF)" };
   }
   if (file.size > MAX_FILE_SIZE) {
-    return { ok: false, error: "Dosya boyutu en fazla 5MB olabilir" };
+    return { ok: false, error: "Dosya boyutu en fazla 10MB olabilir" };
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const input = Buffer.from(await file.arrayBuffer());
+  const prepared = await prepareImage(input, extension, file.type, options);
+
   const baseName = slugify(file.name.replace(/\.[^.]+$/, "")) || "gorsel";
-  const fileName = `${baseName}-${randomUUID().slice(0, 8)}.${extension}`;
+  const fileName = `${baseName}-${randomUUID().slice(0, 8)}.${prepared.extension}`;
   const url = `/api/media/${fileName}`;
 
   await mkdir(mediaDir(), { recursive: true });
-  await writeFile(path.join(mediaDir(), fileName), buffer);
+  await writeFile(path.join(mediaDir(), fileName), prepared.buffer);
 
   await prisma.mediaAsset.create({
     data: {
       url,
       fileName,
-      mimeType: file.type,
-      sizeBytes: file.size,
+      mimeType: prepared.mimeType,
+      sizeBytes: prepared.buffer.length,
       refs: [],
     },
   });
 
-  return { ok: true, url, fileName, sizeBytes: file.size, mimeType: file.type };
+  return {
+    ok: true,
+    url,
+    fileName,
+    sizeBytes: prepared.buffer.length,
+    mimeType: prepared.mimeType,
+  };
 }
 
 // Dosyayı yalnızca hiçbir referans kalmadığında fiziksel olarak siler.

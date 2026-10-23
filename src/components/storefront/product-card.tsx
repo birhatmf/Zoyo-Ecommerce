@@ -11,7 +11,13 @@ export type ProductCardData = {
   coverImage: { url: string; altText: string | null } | null;
 };
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+export function ProductCard({
+  product,
+  priority,
+}: {
+  product: ProductCardData;
+  priority?: boolean;
+}) {
   const discount =
     product.discountPrice !== null &&
     Number(product.discountPrice) > 0 &&
@@ -27,6 +33,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           src={product.coverImage?.url}
           alt={product.coverImage?.altText || product.name}
           fallbackLabel={product.name}
+          priority={priority}
           className="transition-transform duration-300 group-hover:scale-[1.03]"
         />
       </div>

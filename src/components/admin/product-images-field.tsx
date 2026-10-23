@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // storage.ts ile aynı limitler — kullanıcı yüklemeden önce hata görsün.
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPT = "image/jpeg,image/png,image/webp,image/avif";
 const MAX_IMAGES = 20;
 
@@ -127,7 +127,7 @@ export function ProductImagesField({
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
-        messages.push("Dosya boyutu en fazla 5MB olabilir");
+        messages.push("Dosya boyutu en fazla 10MB olabilir");
         continue;
       }
       if (accepted.length >= room) {
@@ -319,7 +319,7 @@ export function ProductImagesField({
         {items.length === 0 ? (
           <p className="py-8 text-center text-xs text-muted-foreground">
             Görsel seçin veya dosyaları buraya sürükleyin (en fazla {MAX_IMAGES}{" "}
-            görsel, 5MB).
+            görsel, 10MB).
           </p>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -40,8 +40,12 @@ export default async function ProductsPage() {
 
       {products.length > 0 ? (
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={toProductCardData(product)} />
+          {products.map((product, index) => (
+            <ProductCard
+              key={product.id}
+              product={toProductCardData(product)}
+              priority={index < 4}
+            />
           ))}
         </div>
       ) : (

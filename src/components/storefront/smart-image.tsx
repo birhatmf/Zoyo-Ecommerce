@@ -8,6 +8,7 @@ type SmartImageProps = {
   fallbackLabel?: string;
   sizes?: string;
   className?: string;
+  priority?: boolean;
 };
 
 export function SmartImage({
@@ -16,6 +17,7 @@ export function SmartImage({
   fallbackLabel,
   sizes = IMAGE_FALLBACK_SIZES,
   className,
+  priority,
 }: SmartImageProps) {
   if (!src) {
     return (
@@ -36,6 +38,7 @@ export function SmartImage({
       alt={alt}
       fill
       sizes={sizes}
+      priority={priority}
       className={`object-cover ${className ?? ""}`}
     />
   );

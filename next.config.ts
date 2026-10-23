@@ -34,11 +34,18 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // saveImage en fazla 5MB kabul ediyor; multipart overhead'i için pay bırak
-      bodySizeLimit: "10mb",
+      // saveImage artık dosya başına 10MB kabul ediyor; çoklu seçimde toplam
+      // gövde bu sınırı aşabildiği için multipart için geniş pay bırakılır.
+      // (nginx tarafında da client_max_body_size eşleşmeli.)
+      bodySizeLimit: "64mb",
     },
   },
   images: {
+    // AVIF destekleyen tarayıcılara AVIF, diğerlerine WebP sunulur.
+    formats: ["image/avif", "image/webp"],
+    // Yüklenen görseller değişmez (immutable) kabul edilir; optimize edilmiş
+    // kopyalar uzun süre önbellekte kalır.
+    minimumCacheTTL: 31536000,
     remotePatterns: allowedImageHosts.map((hostname) => ({
       protocol: "https",
       hostname,
