@@ -11,7 +11,14 @@ export async function CategoriesSection() {
     getStorefrontTexts(),
   ]);
 
-  if (categories.length === 0) return null;
+  // Görseli olmayan kategoriler ızgarada harf placeholder olarak çirkin
+  // durduğu için yalnızca görselli kategoriler gösterilir; hiç yoksa bölüm
+  // render edilmez (admin görsel ekleyince otomatik görünür).
+  const visibleCategories = categories
+    .filter((category) => Boolean(category.image))
+    .slice(0, 8);
+
+  if (visibleCategories.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
@@ -32,7 +39,7 @@ export async function CategoriesSection() {
       </div>
 
       <ul className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-        {categories.map((category) => (
+        {visibleCategories.map((category) => (
           <li key={category.id}>
             <Link
               href={`/kategori/${category.slug}`}
