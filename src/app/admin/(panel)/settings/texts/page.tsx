@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Storefront Metinleri" };
 // Navbar ve footer metinleri kendi sayfalarında canlı önizlemeyle düzenlendiği
 // için burada tekrar edilmez (tek kaynak ilkesi). Yalnızca inline editor'ü
 // olmayan genel/checkout/sepet metinleri bu sayfadan yönetilir.
-const TEXT_GROUPS = ["homepage", "cart", "checkout", "orderSuccess"] as const;
+const TEXT_GROUPS = ["homepage", "cart", "checkout", "orderSuccess", "common"] as const;
 
 export default async function AdminStorefrontTextsPage() {
   const texts = await getStorefrontTexts();
@@ -60,6 +60,7 @@ function groupLabel(group: string): string {
     cart: "Sepet",
     checkout: "Sipariş (Checkout)",
     orderSuccess: "Sipariş Başarı Ekranı",
+    common: "Genel",
   };
   return labels[group] ?? group;
 }
