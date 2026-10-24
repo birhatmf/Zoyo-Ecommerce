@@ -3,6 +3,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireRole } from "@/lib/auth";
@@ -360,4 +361,33 @@ export async function deleteOrderNoteAction(formData: FormData): Promise<void> {
   await prisma.orderNote.delete({ where: { id: parsed.data.noteId } });
 
   revalidatePath(`/admin/orders/${note.orderId}`);
+}
+
+// Sipariş silme: yalnızca ADMIN, geri döndürülemez. Sipariş kalemleri ve
+// notları cascade ile silinir; işlem audit log'a yazılır.
+export async function deleteOrderAction(formData: FormData): Promise<void> {
+  const admin = await requireRole("ADMIN");
+  if (!admin) return;
+
+  const parsed = z.uuid().safeParse(formData.get("id"));
+  if (!parsed.success) return;
+
+  const order = await prisma.order.findUnique({
+    where: { id: parsed.data },
+    select: { orderNumber: true },
+  });
+  if (!order) return;
+
+  await prisma.order.delete({ where: { id: parsed.data } });
+  await recordAudit({
+    actor: admin,
+    action: "DELETE",
+    entityType: "Order",
+    entityId: parsed.data,
+    summary: `${order.orderNumber} numaralı sipariş silindi`,
+  });
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/orders/production");
+  redirect("/admin/orders");
 }

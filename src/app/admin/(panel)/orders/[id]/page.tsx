@@ -4,7 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 
-import { updateOrderContactAction } from "@/app/admin/(panel)/orders/actions";
+import {
+  deleteOrderAction,
+  updateOrderContactAction,
+} from "@/app/admin/(panel)/orders/actions";
+import { requireAdmin } from "@/lib/auth";
 import { getOrderNoteTemplates } from "@/lib/order";
 import {
   formatDate,
@@ -14,6 +18,7 @@ import {
 import { PRODUCTION_STAGE_LABELS } from "@/lib/order-production";
 import { formatPrice, whatsappUrl } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { ConfirmDeleteButton } from "@/components/admin/confirm-delete-button";
 import { OrderManagePanel } from "@/components/admin/order-manage-panel";
 import { OrderNotes } from "@/components/admin/order-notes";
 import { PrintButton } from "@/components/admin/print-button";
@@ -33,6 +38,8 @@ const INVOICE_TYPE_LABELS = {
 
 export default async function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
+
+  const admin = await requireAdmin();
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -101,6 +108,16 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
             {ORDER_STATUS_LABELS[order.status]}
           </span>
           <PrintButton />
+          {admin.role === "ADMIN" && (
+            <span className="print:hidden">
+              <ConfirmDeleteButton
+                action={deleteOrderAction}
+                hiddenFields={{ id: order.id }}
+                label="Siparişi Sil"
+                entityName={`${order.orderNumber} numaralı sipariş`}
+              />
+            </span>
+          )}
         </div>
       </div>
 

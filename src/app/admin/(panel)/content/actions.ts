@@ -162,19 +162,34 @@ const heroSlideSchema = z.object({
   active: z.boolean(),
 });
 
-export async function saveHeroSlideAction(formData: FormData): Promise<void> {
-  const _actor = await requireRole("EDITOR");
-  if (!_actor) return;
+export type HeroSlideActionResult = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  saved?: boolean;
+};
+
+export async function saveHeroSlideAction(
+  formData: FormData,
+): Promise<HeroSlideActionResult> {
+  const admin = await requireRole("EDITOR");
+  if (!admin) return { error: "Bu işlem için yetkiniz yok." };
 
   // Görsel adresi boşsa doğrudan yüklenen dosyayı kullan
   let imageUrl = String(formData.get("imageUrl") ?? "").trim();
   if (!imageUrl) {
     const file = formData.get("imageFile");
-    if (!(file instanceof File) || file.size === 0) return;
+    if (!(file instanceof File) || file.size === 0) {
+      return {
+        error:
+          "Görsel gerekli: bir dosya seçin ya da /api/media/... ile başlayan geçerli bir adres girin.",
+        fieldErrors: { imageUrl: "Görsel gerekli" },
+      };
+    }
     const result = await saveImage(file);
-    if (!result.ok) return;
+    if (!result.ok) {
+      return { error: result.error, fieldErrors: { imageFile: result.error } };
+    }
     imageUrl = result.url;
-    formData.set("imageUrl", imageUrl);
   }
 
   const parsed = heroSlideSchema.safeParse({
@@ -182,23 +197,34 @@ export async function saveHeroSlideAction(formData: FormData): Promise<void> {
     title: formData.get("title"),
     subtitle: formData.get("subtitle") ?? "",
     description: formData.get("description") ?? "",
-    imageUrl: formData.get("imageUrl"),
+    imageUrl,
     ctaLabel: formData.get("ctaLabel") ?? "",
     ctaUrl: formData.get("ctaUrl") ?? "",
     sortOrder: formData.get("sortOrder") ?? 0,
     active: formData.get("active") === "on",
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return {
+      error: "Lütfen form alanlarını kontrol edin.",
+      fieldErrors: fieldErrorsFrom(parsed.error),
+    };
+  }
 
   const { id, ...data } = parsed.data;
-  if (id) {
-    await prisma.heroSlide.update({ where: { id }, data });
-  } else {
-    await prisma.heroSlide.create({ data });
+  try {
+    if (id) {
+      await prisma.heroSlide.update({ where: { id }, data });
+    } else {
+      await prisma.heroSlide.create({ data });
+    }
+  } catch (error) {
+    console.error("Hero slide save failed:", error);
+    return { error: "Slayt kaydedilemedi. Lütfen tekrar deneyin." };
   }
 
   revalidatePath("/admin/content/home");
   revalidatePath("/");
+  return { saved: true };
 }
 
 export async function deleteHeroSlideAction(formData: FormData): Promise<void> {

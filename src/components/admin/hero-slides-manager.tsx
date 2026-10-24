@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
 
 import {
@@ -146,16 +147,37 @@ function SlideFields({
   onDone: () => void;
 }) {
   const [imageUrl, setImageUrl] = useState(slide?.imageUrl ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  async function submit(formData: FormData) {
+    setError(null);
+    setFieldErrors({});
+    try {
+      const result = await saveHeroSlideAction(formData);
+      if (result?.saved) {
+        onDone();
+        return;
+      }
+      setError(result?.error ?? "Slayt kaydedilemedi.");
+      setFieldErrors(result?.fieldErrors ?? {});
+    } catch {
+      setError("Slayt kaydedilemedi. Lütfen tekrar deneyin.");
+    }
+  }
 
   return (
-    <form
-      action={async (formData) => {
-        await saveHeroSlideAction(formData);
-        onDone();
-      }}
-      className="grid gap-4 sm:grid-cols-2"
-    >
+    <form action={submit} className="grid gap-4 sm:grid-cols-2">
       {slide && <input type="hidden" name="id" value={slide.id} />}
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive sm:col-span-2"
+        >
+          {error}
+        </p>
+      )}
 
       <div className="sm:col-span-2">
         <span className={labelClass}>Başlık *</span>
@@ -165,6 +187,11 @@ function SlideFields({
           defaultValue={slide?.title ?? ""}
           className={inputClass}
         />
+        {fieldErrors.title && (
+          <span className="mt-1 block text-xs text-destructive">
+            {fieldErrors.title}
+          </span>
+        )}
       </div>
       <div>
         <span className={labelClass}>Alt Başlık (üst etiket)</span>
@@ -214,9 +241,15 @@ function SlideFields({
           />
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          Dosya seçerek yükleyebilir ya da görsel adresi yapıştırabilirsiniz;
-          ikisi de boşsa kayıt yapılmaz.
+          En kolayı: dosya seçip yükleyin. Adresle eklerken yalnızca{" "}
+          <code>/api/media/...</code> biçimindeki (sisteme yüklenmiş) görseller
+          kabul edilir.
         </p>
+        {fieldErrors.imageUrl && (
+          <span className="mt-1 block text-xs text-destructive">
+            {fieldErrors.imageUrl}
+          </span>
+        )}
       </div>
 
       <div>
@@ -257,14 +290,22 @@ function SlideFields({
             <X className="size-3.5" />
             Vazgeç
           </button>
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-          >
-            Kaydet
-          </button>
+          <SaveButton />
         </div>
       </div>
     </form>
+  );
+}
+
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
+    >
+      {pending ? "Kaydediliyor…" : "Kaydet"}
+    </button>
   );
 }
